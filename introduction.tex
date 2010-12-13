@@ -1,0 +1,43 @@
+\chapter{Introduction}
+
+\dr\ is one of the most widely-used tools in the development of
+\er\ programs. Its name stands for DIscrepancy anALYZer for ERlang and
+it does exactly that: in an inherently dynamically typed language such
+as \er, \dr\ is able to detect many type related discrepancies using
+static analysis. The initial version reported type errors using
+success typings but subsequent extensions allowed for verification of
+user contracts, detection of violations of the opaqueness of certain
+abstract data types and recently even warnings about race conditions
+\cite{Races@PADL-10, springerlink:10.1007/978-3-540-30477-7_7,
+  SuccessTypings@PPDP-06, opaques}.
+
+Altough taking part in the development of such a tool is a pleasure in
+itself, this thesis begun with a more concrete motivation: the
+extension of \dr\ to detect discrepancies in the use of \er's
+\emph{behaviours} (more on these in
+Section \ref{sct:behaviour_preliminaries}), including simple
+type-related checks and enabling the new race detection analysis to
+pass through them undistracted. This goal was accomplished easily, as
+described in Chapter \ref{chp:behaviours}, but the cost was that the
+soundness of \dr\ was compromised (see Section
+\ref{sct:behaviour_discrepancies}).
+
+As this couldn't be tolerated (one of \dr's cornerstones is that it'll
+never be wrong about a warning it emits) the second part of this
+thesis came into focus. When you design a tool that promises to detect
+discrepancies in code soundly the main question you have to address is
+not what to include but what to leave outside. One of the greatest
+compromises made in \dr's initial design was that it would work with a
+type system \textbf{without} \emph{intersection types} for functions
+(see Section \ref{sct:dialyzer_preliminaries}). This lead to its
+inability to report glaring errors as the one presented in Section
+\ref{sct:intersection_preliminaries} and was the reason behind the
+violation of soundness in behaviour analysis as well.
+
+As in every happy story, this is no longer the case! Chapters
+\ref{chp:intersection_generate} and \ref{chp:intersection_usage} show
+how intersection types can be generated and used. \dr\ emerges
+stronger than before, able to catch both abuses of behaviours and a
+whole new range of actual errors in code. What is more, further
+improvements are now easily attainable and are presented in Section
+\ref{sct:further_work}.

@@ -1,0 +1,287 @@
+\chapter{Using Intersection Types}
+\label{chp:intersection_usage}
+
+\section{Testing with PropEr}
+
+Testing the implementation of intersection types proved to be an
+excellent opportunity for another tool developed in SoftLab to show
+its shine: PropEr \cite{Manolis}. Types are inherently an abstract
+data type with its own operators and properties that should be
+satisfied by them. A brief overview of the testing using PropEr will
+be given in this section.
+
+\subsection{Generating random function types}
+
+Property-based testing requires a generator for random input for the
+tests. Using PropEr we were able to create a generator for
+intersectioned function types with ease taking into consideration
+parameters as:
+\begin{itemize}
+\item Covering all the simple types for both arguments and result
+\item Testing operators for both same arity and differing arity functions
+\item Helping PropEr's reduction with simple primitive types (like 'a'
+  for atoms)
+\item Pretty printing of failing tests using PropEr's ?WHENFAIL directive
+\end{itemize}
+
+\subsection{Properties of function types}
+
+As the actual implementation was a result of experimentation, trivial
+properties as well as stronger ones were tested. Some of them:
+
+\begin{enumerate}
+\item Simple function types combine correctly into an intersection
+\item The supremum/infimum of F with F is equal to F
+\item Subtracting F from F yields \none
+\item F is subtype of F
+\item If Inf is the infimum of F1 and F2 then Inf is a subtype of both of
+  them
+\item If Sup is the supremum of F1 and F2 then F1 and F2 are subtypes of
+  Sup
+\item If Sup is the supremum of F1 and F2, Inf1 is the infimum of Sup
+  and F1, Inf2 is the infimum of Sup and F2 then Inf1 is equal to F1
+  and Inf2 is equal to F2
+\item The supremum/infimum of F1 and F2 is equal to the
+  supremum/infimum of F2 and F1
+\item If Inf is the infimum of F1 and F2 then the infimum of F1 and
+  Inf is equal to Inf
+\item If F1 is subtype of F2 and F2 is subtype of F1 then they are equal
+\end{enumerate}
+
+\subsection{Side results}
+
+Using these properties and some early implementations with no
+syntactic equality (as presented in Section
+\ref{sct:orig_type_operations}) we found a two minor omission in the
+type system of Erlang, in an operator that returned all the simple types
+contained in a composite type:
+\begin{enumerate}
+\item Arbitrary lists didn't return as simple types the empty list and
+  the nonempty list with the same contents
+\item Unspecified numbers didn't break down to unspecified integers
+  and unspecified floats.
+\end{enumerate}
+
+Fixing the first omission led to the detection of many loose contracts
+in OTP (where nonempty list were sure to be returned whereas the
+contract included the empty list as a possible return).
+
+\subsection{Conclusion}
+
+Using PropEr was a very creative and fun experience as ideas could be
+tested quickly against the properties required.
+
+\section{Performance issues}
+
+Sparsely in the previous secrions we mentioned the need of limits in
+the geneneration of intersections. These limits were imposed when the
+analysis was under risk to become needlessly time consuming. The
+recent parallelization of Dialyzer \cite{Ypatia} should push these
+limits further.
+\begin{description}
+\item[Number of clauses:] In the calculation of the disjunctive normal
+  form, in cases where too many clauses or deep nesting of branches is
+  present it is possible for the normal form to have too many
+  branches. A limit was put to the number of them to maintain both
+  efficiency and usability, as a very long success typing would alse
+  be impractical to present to the user.
+\item[Size of SCCs:] The analysis of SCCs requires a separate fixpoint
+  and the substitution of the \emph{dynamic constraints} mentioned in
+  Section \ref{sct:intersect_constr_generation} each time using the
+  latest type. This becomes impractical when the SCC is particularly
+  big so another limit was placed in the size of it.
+\item[Iterations in SCCs and self-recursive:] Before intersection
+  types \dr's overapproximations guaranteed that fixpoint would be
+  reached in a reasonable amount of iterations. This is no longer the
+  case. Consider the example in Listing \ref{lst:self_rec_id_fun}. The
+  iterative process will infer that the function returns 0 for input
+  0, 1 for input 1 and so forth, without any reason to stop or any
+  mean to find a fixpoint (previously after a few iterations both
+  success types would collapse into \emph{integer}).
+  \begin{console}{lst:self_rec_id_fun}{A self recursive numeric identity function}
+    id(0) -> 0; id(N) -> 1 + id(0)
+  \end{console}
+\end{description}
+
+In all these cases we simply skip the tranformation to the normal form
+after a fixed number of iterations. This causes the success typing to
+collapse as the combination of the arguments' and the return types
+happens in the end (as described in Sections \ref{sct:orig_analysis}
+and \ref{sct:intersect_constr_process}).
+
+\section{Intersection analysis results}
+
+The actual usage of the success typings for discrepancy detection
+happens in a final dataflow pass on the code under inspection. We
+won't go into detail here on the various warnings that may be emitted
+as these are covered in detail in the relevant publications
+\cite{Elli, SuccessTypings@PPDP-06,
+  springerlink:10.1007/978-3-540-30477-7_7}.
+
+The only change we implemented there is the substitution of the
+generic lookup for the return type of function calls with a lookup
+that takes into consideration the types of the arguments. In this way
+we can easily detect discrepancies like the one in the initial example
+(\ref{sct:intersection_preliminaries}).
+
+\subsection{Generic discrepancies}
+
+Using the extended \dr\ the results presented in Table
+\ref{tab:intersection_results} were found. They are divided in the
+following categories:
+
+\begin{description}
+\item{Failing calls:} These are calls that are certain to fail. This
+  is usually the result of a particular combination of arguments. This
+  category includes calls that are supposed to fail but no spec is
+  provided so that dialyzer knows not to worry (See Listing
+  \ref{lst:failing_call}.
+\item{Unneeded cases:} These are \emph{case} statements that have an
+  unneeded error-catching or catch-all clause (See Listing
+  \ref{lst:unneeded_case}.
+\item{Exit calls:} Calls that result in an \emph{erlang:exit}. These
+  come from error-handling functions that do not always fail. When
+  such calls are present, user should specify that the function may
+  not return (See Listing \ref{lst:exit_call}). 
+\item{Nonmatching clauses:} These are nonmatching clauses that are not
+  catch-alls.
+\item{Deriving warnings:} In some cases a root failure may cause
+  several more warnings to be emitted. These are listed with this
+  category. An example is functions that won't be called due to an
+  error earlier in the flow of control. Fixing the root cause will
+  eliminate these warnings as well.
+\end{description}
+
+\begin{fulltable}{|c|c|c|c|}{New Discrepancies in OTP Applications}{tab:intersection_results}
+\hline
+Application & Description & Category & Discrepancies\\
+\hline
+\hline
+asn1 & Abstract Syntax Notation 1 tools & Exit call & 1 \\
+\hline
+auth & Network Authentication Server & Deriving warnings & 9 \\
+\hline
+edoc & Documentation generator & Failing call & 1 \\
+\hline
+\multirow{2}{*}{erts} & \multirow{2}{*}{Erlang Run-Time System} &
+Failing calls & 2 \\
+\cline{3-4}
+& & Deriving warnings & 17 \\
+\hline
+file & File Interface Module & Deriving warnings & 25 \\
+\hline
+hipe & High Performance compiler & Unneeded case & 1 \\
+\hline
+\multirow{3}{*}{inets}& \multirow{3}{*}{Internet clients and servers} &
+Failing calls & 2 \\
+\cline{3-4}
+& & Exit call & 1 \\
+\cline{3-4}
+& & Nonmatching clause & 1 \\
+\hline
+\multirow{2}{*}{mnesia} & \multirow{2}{*}{distributed DBMS}
+ & Exit calls & 7 \\
+\cline{3-4}
+& & Unneeded case & 1 \\
+\hline
+ssh & SSH application & Unneeded case & 1 \\
+\hline
+\multirow{3}{*}{ssl} & \multirow{3}{*}{Interface for Secure Socket Layer} &
+Failing calls & 2 \\
+\cline{3-4}
+ & & Unneeded case & 1 \\
+\cline{3-4}
+& & Deriving warnings & 1 \\
+\hline
+\multirow{2}{*}{tv} & graphical examination of & \multirow{2}{*}{Unneeded case} & \multirow{2}{*}{1} \\
+& ETS and Mnesia tables & & \\
+\hline
+\hline
+\multicolumn{3}{|c|}{\textbf{Total original errors}} & 22 \\
+\hline
+\end{fulltable}
+
+\begin{console}{lst:failing_call}{A call that will surely fail}
+httpd_request_handler.erl:439: The call
+httpd_response:send_status(ModData::#mod{data::[], method::[any()],
+  request_line::nonempty_maybe_improper_list(),
+  parsed_header::[any()], connection::boolean()},501, [1..255,...])
+will never return since it differs in the 2nd and/or 3rd argument from
+the success typing arguments: (#mod{socket_type::'ip_comm' |
+  {'essl',_} | {'ossl',_} | {'ssl',_}},100 | 304 | 400 | 408 | 413 |
+416 | 500 | 503,any()) or (#mod{socket_type::'ip_comm' | {'essl',_} |
+  {'ossl',_} | {'ssl',_}},301 | 403 | 404 | 414,[any()]) or
+(#mod{socket_type::'ip_comm' | {'essl',_} | {'ossl',_} |
+  {'ssl',_}},400 | 401 | 412,'none') or (#mod{socket_type::'ip_comm' |
+  {'essl',_} | {'ossl',_} | {'ssl',_}},501,{atom() |
+  [any()],[any()],[any()]})
+
+%% A rather esoteric warning about the 501 Not Implemented HTTP status message
+\end{console}
+
+\begin{console}{lst:unneeded_case}{A redundant catch-all clause}
+con_desc(E) ->
+    case cerl:type(E) of
+	cons -> {?cons_id, 2};
+	tuple -> {?tuple_id, cerl:tuple_arity(E)};
+	binary -> {?binary_id, cerl:binary_segments(E)};
+	literal ->
+	    case cerl:concrete(E) of
+		[_|_] -> {?cons_id, 2};
+		T when is_tuple(T) -> {?tuple_id, tuple_size(T)};
+		V -> {?literal_id(V), 0}
+	    end;
+	_ ->
+	    throw({bad_constructor, E})
+    end.
+
+%% Produces the warning
+
+cerl_pmatch.erl:338: The variable _ can never match since previous clauses
+completely covered the type 'binary' | 'cons' | 'literal' | 'tuple'
+\end{console}
+
+\begin{console}{lst:exit_call}{A path that ends in a call to \emph{exit}}
+...
+check_if_valid_tag(<<>>, _, OptOrMand) ->
+    check_if_valid_tag2(false,[],[],OptOrMand);
+...
+
+check_if_valid_tag2(_Class_TagNo, [], Tag, MandOrOpt) ->
+    check_if_valid_tag2_error(Tag,MandOrOpt);
+
+...
+
+check_if_valid_tag2_error(Tag,mandatory) ->
+    exit({error,{asn1,{invalid_tag,Tag}}});
+check_if_valid_tag2_error(Tag,_) ->
+    exit({error,{asn1,{no_optional_tag,Tag}}}).
+
+%% Produces the warning
+
+asn1rt_ber_bin.erl:2200: The call
+asn1rt_ber_bin:check_if_valid_tag2('false',[],[],OptOrMand::any()) will never
+return since it differs in the 2nd argument from the success typing arguments:
+('false' | {'APPLICATION',_} | {'CONTEXT',_} | {'PRIVATE',_} |
+{'UNIVERSAL',_},nonempty_maybe_improper_list(),[] | {_,_,_},any())
+\end{console}
+
+\subsection{Behaviour related results}
+
+The introduction of intersection types removed all the false positives
+from the previously collected results on behaviour usage. The reason
+for this is precisely the one described in Section
+\ref{sct:behaviour_discrepancies}: intersectioned types were assigned
+to the functions that handled all the requests and the analysis was
+able to discern whether a particular call could end in each result
+instead of assuming they were all possible. None of the other warnings
+were affected.
+
+\subsection{Bonus results}
+
+In Section REF we mentioned how the correction of a small omission
+produced warnings about overspecified functions. Another such small
+error regarded the relation between the \none\ and \emph{unit}
+types. The infimum of the two was considered to be \emph{unit}. The
+correction of this error unearthed a heap of \emph{``Function X has no
+  local return''}.

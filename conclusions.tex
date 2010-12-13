@@ -1,0 +1,69 @@
+\chapter{Related and Further work}
+
+\section{Related work}
+\label{sct:related_work}
+
+There is almost no other known cases where tools need to make checks
+like the ones implemented for \er's \emph{behaviours}, either in their
+generic usage or in the detection of races through
+them. Object-oriented languages that use the equivalent \emph{abstract
+  classes}, \emph{virtual methods} and \emph{interfaces} have static
+typing (C++, Java, OCaml, ...) which ensures the fitting of
+implementations in every case.
+
+On the subject of intersection types in a dynamically typed
+programming language, only DRuby is a known analog and is presented
+below.
+
+The changes in the refinement procedure presented in Section
+\ref{sct:intersect_refinement} are related with many formal approaches
+to control flow analysis
+
+\subsection{Diamondback Ruby (DRuby)}
+
+Diamondback Ruby (DRuby)\cite{druby} is a recent tool that blends
+Ruby's dynamic type system with a static typing discipline. It uses a
+similar approach as \dr\ generating constraints for the variables then
+applying a set of rewrite rules exhaustively. Intersection types are
+included from the beginning in it's type system, but it cannot infer
+them automatically. As a result they need to be annotated by the
+developer placing them on the same level as \dr's contracts
+(\emph{specs}).
+
+\section{Further work}
+\label{sct:further_work}
+
+\subsection{Behaviours}
+\subsubsection{Automatic bypass of API for race detection}
+
+The ``bypass'' mechanism was designed to be extensible, allowing other
+behaviour API's to be connected with the respective callbacks. Anyone
+with a better understanding of the other behaviours may document the
+rest OTP's behaviours easily by adding code in
+\emph{dialyzer\_behaviours} module. It would be even better if this
+connection was tranferred in each behaviour's file, as a new attribute
+or as an extension on the \emph{callback} attribute that was
+introduced in this thesis.
+
+\subsection{Intersections}
+
+\subsubsection{Negative Types}
+\label{sct:negative_types}
+
+The next logical extension to the type system would be negative
+types. Examples would be \emph{``any term except the integer 42''} or
+\emph{``any atom except a''}. With this infrastructure, when
+\dr\ generates disjunctive lists it will be able to eliminate the
+types already covered in previous clauses in the following ones. Thus
+a ``catch-all'' will not have type \any\ but \emph{``anything but X, Y
+  and Z''} where \emph{X, Y} and \emph{Z} will be the types already
+covered by previous clauses.
+
+\subsubsection{Tighter coupling between type and code}
+
+Using normal form and sorting on the function's type has an impact on
+the relation between the type of the function and the actual code that
+generated it. Even though it was easy to find the cause of all the
+warnings emitted when intersection types were used, it might be better
+to narrow down a warning to a particular clause instead of the generic
+pointer to the first line of the function.
