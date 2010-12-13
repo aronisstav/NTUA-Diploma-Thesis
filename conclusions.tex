@@ -13,7 +13,8 @@ implementations in every case.
 
 On the subject of intersection types in a dynamically typed
 programming language, only DRuby is a known analog and is presented
-below.
+below. Other related work has been centered around Dylan and
+JavaScript and is briefly mentioned as well.
 
 The changes in the refinement procedure presented in Section
 \ref{sct:intersect_refinement} are related with many formal approaches
@@ -29,6 +30,29 @@ included from the beginning in it's type system, but it cannot infer
 them automatically. As a result they need to be annotated by the
 developer placing them on the same level as \dr's contracts
 (\emph{specs}).
+
+\subsection{Dylan and JavaScript}
+
+Dylan is a dynamically typed object-centered programming language
+inspired by Common Lisp and ALGOL. In a recent publication Mehnert
+proposed an extension providing function types and parametric
+polymorphism to the language\cite{dylan}. The function types
+specialize from the previous generic ones but do not include
+intersections. Powerful paramteric polymorphism is provided though.
+
+JavaScript is the main scripting language for Web browsers, and it is
+essential to modern Web applications. Applying type analysis to
+JavaScript is a subtle business because, like most other scripting
+languages, JavaScript has a weak, dynamic typing discipline which
+resolves many representation mismatches by silent type conversions. In
+their publication\cite{javascript} Jensen, M\o ller and Thiemann
+develop such a type analyzer which like \dr\ is fully automatic
+\emph{but} is designed for \emph{soundness} with regard to the absense
+of certain errors.
+
+\dr's success typings approach is mentioned in both these attempts to
+provide static typing and discrepancy detection to dynamically typed
+languages.
 
 \section{Further work}
 \label{sct:further_work}
