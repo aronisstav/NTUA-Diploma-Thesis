@@ -1,0 +1,6 @@
+*
+!*.tex
+!*.bib
+!*.eps
+!.gitignore
+!README
