@@ -131,21 +131,21 @@ Using the extended \dr\ the results presented in Table
 following categories:
 
 \begin{description}
-\item{Failing calls:} These are calls that are certain to fail. This
+\item[Failing calls:] These are calls that are certain to fail. This
   is usually the result of a particular combination of arguments. This
   category includes calls that are supposed to fail but no spec is
   provided so that dialyzer knows not to worry (See Listing
   \ref{lst:failing_call}.
-\item{Unneeded cases:} These are \emph{case} statements that have an
+\item[Unneeded cases:] These are \emph{case} statements that have an
   unneeded error-catching or catch-all clause (See Listing
   \ref{lst:unneeded_case}.
-\item{Exit calls:} Calls that result in an \emph{erlang:exit}. These
+\item[Exit calls:] Calls that result in an \emph{erlang:exit}. These
   come from error-handling functions that do not always fail. When
   such calls are present, user should specify that the function may
   not return (See Listing \ref{lst:exit_call}). 
-\item{Nonmatching clauses:} These are nonmatching clauses that are not
+\item[Nonmatching clauses:] These are nonmatching clauses that are not
   catch-alls.
-\item{Deriving warnings:} In some cases a root failure may cause
+\item[Deriving warnings:] In some cases a root failure may cause
   several more warnings to be emitted. These are listed with this
   category. An example is functions that won't be called due to an
   error earlier in the flow of control. Fixing the root cause will
