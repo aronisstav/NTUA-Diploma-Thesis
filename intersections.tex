@@ -642,7 +642,10 @@ refinement constraint.
 
 Allowing for intersection types, we can keep each call separate and
 expect better results from the refinement. This is closer to a
-\emph{polyvariant} control flow analysis.
+\emph{polyvariant} control flow analysis. The argument types from each
+call generate a conjunctive list and all these lists are placed under
+a disjunctive list where they can be handled by the normal form
+transformation in the usual way.
 
 As an example take the simple reversal of lists, presented in Listing
 \ref{lst:reverse}. The one-argument function is exported while the

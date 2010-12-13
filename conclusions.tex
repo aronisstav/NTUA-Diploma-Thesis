@@ -16,9 +16,8 @@ programming language, only DRuby is a known analog and is presented
 below. Other related work has been centered around Dylan and
 JavaScript and is briefly mentioned as well.
 
-The changes in the refinement procedure presented in Section
-\ref{sct:intersect_refinement} are related with many formal approaches
-to control flow analysis
+Finally, the changes in the refinement procedure are related with a
+formal approach to control flow analysis, also described below
 
 \subsection{Diamondback Ruby (DRuby)}
 
@@ -54,6 +53,18 @@ of certain errors.
 provide static typing and discrepancy detection to dynamically typed
 languages.
 
+\subsection{Refinement using control flow analysis}
+
+In their publication, Palsberg and Pavlopoulou \cite{polyvariant}
+propose an approach to control flow analysis that goes one step
+further than the changes proposed in this thesis (Section
+\ref{sct:intersect_refinement}). Instead of using the types of the
+arguments as they are presented in the various calls, a computation is
+performed to obtain ``covers'' from them and use these covers instead
+in the polyvariant refinement. For this idea to be applicable we need
+to figure out if the actual calls can be reduced to some elemntary
+sets such that each call is exactly covered by some of them.
+
 \section{Further work}
 \label{sct:further_work}
 
@@ -71,7 +82,7 @@ introduced in this thesis.
 
 \subsection{Intersections}
 
-\subsubsection{Negative Types}
+\subsubsection{Negative types}
 \label{sct:negative_types}
 
 The next logical extension to the type system would be negative
@@ -91,3 +102,11 @@ generated it. Even though it was easy to find the cause of all the
 warnings emitted when intersection types were used, it might be better
 to narrow down a warning to a particular clause instead of the generic
 pointer to the first line of the function.
+
+\subsubsection{Better refinement}
+
+In the current form, if a lot of calls are present in the code the
+refinement analysis might fail due to the added effect of the
+disjunctive refinement constraint. The ideas presented in Palsberg and
+Pavlopoulou \cite{polyvariant} might reduce the elements of the
+constraint in such cases, maintaining strictness.
