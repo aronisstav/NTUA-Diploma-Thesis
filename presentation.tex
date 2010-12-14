@@ -1,0 +1,134 @@
+\documentclass{beamer}
+
+\usepackage[cm-default]{fontspec}
+\usepackage{xunicode}
+\usepackage{xltxtra}
+\setmainfont[Mapping=tex-text]{DejaVu Sans}
+
+\usepackage{graphicx}
+\usepackage{amssymb}
+
+\usetheme{Pittsburgh}
+\useinnertheme{rounded}
+\usefonttheme{serif}
+\usecolortheme{beaver}
+
+\title{Τεχνικές βελτίωσης της αποτελεσματικότητας εύρεσης λαθών
+       σε προγράμματα μέσω στατικής ανάλυσης}
+\author{Σταύρος Αρώνης}
+\date{?? Δεκεμβρίου 2010}
+\institute{Διπλωματική εργασία\\Σχολή ΗΜΜΥ, ΕΜΠ}
+
+\AtBeginSection[]
+{
+  \begin{frame}<beamer>
+    \frametitle{Overview}
+    \tableofcontents[currentsection, hideothersubsections]
+  \end{frame}
+}
+
+\begin{document}
+
+\begin{frame}
+	\titlepage
+	\begin{center}
+		\includegraphics[width=2.5cm]{pyrforos}
+	\end{center}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Overview}
+	\tableofcontents[hidesubsections]
+\end{frame}
+
+\section{Goals}
+
+\begin{frame}
+	\frametitle{Goals}
+	\begin{itemize}
+		\item \textbf{Initial goal:} Detect discrepancies
+		in the use of Erlang's \emph{behaviours}
+		\pause
+		\begin{itemize}
+			\item Formally describe the expected use
+			\pause
+			\item Use the description to automatically
+			check for abuses using Dialyzer
+			\pause
+			\item Deal with the false positives
+		\end{itemize}
+		\pause
+		\item \textbf{More interesting goal:} Add
+		\emph{intersection types} in Dialyzer
+		\pause
+		\begin{itemize}
+			\item Decide on structure and semantics
+			\pause
+			\item Infer them
+			\pause
+			\item Use them!
+		\end{itemize}
+	\end{itemize}
+\end{frame}
+
+\section{Behaviours}
+
+\subsection{What are behaviours?}
+
+\begin{frame}
+	\frametitle{Erlang}
+	\textbf{Erlang} is
+	\begin{itemize}
+		\item functional
+		\item strict
+		\item \textbf{dynamically typed}
+	\end{itemize}
+	that specializes in:
+	\begin{itemize}
+		\item concurrency
+		\item communication
+		\item distribution
+		\item fault-tolerance
+		\item on-the-fly code reloading
+	\end{itemize}
+\end{frame}
+
+\begin{frame}
+	\frametitle{OTP distribution}
+	The main implementation of the language, the Erlang OTP 
+	(Open Telecom Platform) system from Ericsson, has been
+	open source since 1998. It includes:
+	\pause
+	\begin{itemize}
+		\item Runtime system
+		\item Libraries
+		\item \textbf{Behaviours}
+	\end{itemize}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Behaviours}
+	\begin{itemize}
+		\item \textbf{Behaviours:} the equivalent of
+		object-oriented languages' \emph{abstract classes}
+		or \emph{interfaces}
+		\pause
+		\item 
+	\end{itemize}
+\end{frame}
+
+\subsection{Definition of a behaviour}
+\subsection{Checking the use of a behaviour}
+\subsection{The false positive warnings}
+
+\section{Intersection types}
+
+\subsection{Dialyzer's function type deficits}
+\subsection{Intersection types}
+\subsection{Structure and semantics}
+\subsection{Inference}
+\subsection{Usage}
+
+\section{Conclusion}
+
+\end{document}
