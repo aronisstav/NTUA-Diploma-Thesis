@@ -50,6 +50,14 @@
 % CODE HIGHLIGHTING ============================================================
 
 \include{erlang}
+\lstnewenvironment{code}[2]{
+    \nopagebreak
+    \lstset{language=erlang,float=htbp,label={#1},caption={#2}}
+}{}
+\lstnewenvironment{console}[2]{
+    \nopagebreak
+    \lstset{float=htbp,label={#1},caption={#2},numbers=none}
+}{}
 
 \title{Τεχνικές βελτίωσης της αποτελεσματικότητας εύρεσης λαθών
        σε προγράμματα μέσω στατικής ανάλυσης}
