@@ -1,0 +1,22 @@
+\begin{fulltable}{|c|c|c|c|}{Behaviour Discrepancies in OTP Applications}{tab:erl_apps_behaviours}
+\hline
+Application & Description & Behaviour Used & Discrepancies\\
+\hline
+\hline
+\multirow{2}{*}{inets}& \multirow{2}{*}{Internet clients and servers}&
+gen\_server & 1 \\
+\cline{3-4}  
+& & tftp & 1 \\
+\hline
+dist\_ac & distributed application controller & gen\_server & 1 \\
+\hline
+mnesia & distributed DBMS & gen\_server & 2 \\
+\hline
+ssh & SSH application & gen\_server & 2 \\
+\hline
+error\_logger & Stdlib's error logger & gen\_server & 1 \\
+\hline
+\hline
+\multicolumn{3}{|c|}{\textbf{Total discrepancies}} & 8 \\
+\hline
+\end{fulltable}

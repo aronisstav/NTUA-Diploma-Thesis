@@ -152,54 +152,7 @@ following categories:
   eliminate these warnings as well.
 \end{description}
 
-\begin{fulltable}{|c|c|c|c|}{New Discrepancies in OTP Applications}{tab:intersection_results}
-\hline
-Application & Description & Category & Discrepancies\\
-\hline
-\hline
-asn1 & Abstract Syntax Notation 1 tools & Exit call & 1 \\
-\hline
-auth & Network Authentication Server & Deriving warnings & 9 \\
-\hline
-edoc & Documentation generator & Failing call & 1 \\
-\hline
-\multirow{2}{*}{erts} & \multirow{2}{*}{Erlang Run-Time System} &
-Failing calls & 2 \\
-\cline{3-4}
-& & Deriving warnings & 17 \\
-\hline
-file & File Interface Module & Deriving warnings & 25 \\
-\hline
-hipe & High Performance compiler & Unneeded case & 1 \\
-\hline
-\multirow{3}{*}{inets}& \multirow{3}{*}{Internet clients and servers} &
-Failing calls & 2 \\
-\cline{3-4}
-& & Exit call & 1 \\
-\cline{3-4}
-& & Nonmatching clause & 1 \\
-\hline
-\multirow{2}{*}{mnesia} & \multirow{2}{*}{distributed DBMS}
- & Exit calls & 7 \\
-\cline{3-4}
-& & Unneeded case & 1 \\
-\hline
-ssh & SSH application & Unneeded case & 1 \\
-\hline
-\multirow{3}{*}{ssl} & \multirow{3}{*}{Interface for Secure Socket Layer} &
-Failing calls & 2 \\
-\cline{3-4}
- & & Unneeded case & 1 \\
-\cline{3-4}
-& & Deriving warnings & 1 \\
-\hline
-\multirow{2}{*}{tv} & graphical examination of & \multirow{2}{*}{Unneeded case} & \multirow{2}{*}{1} \\
-& ETS and Mnesia tables & & \\
-\hline
-\hline
-\multicolumn{3}{|c|}{\textbf{Total original errors}} & 22 \\
-\hline
-\end{fulltable}
+\include{intersections_results}
 
 \begin{console}{lst:failing_call}{A call that will surely fail}
 httpd_request_handler.erl:439: The call

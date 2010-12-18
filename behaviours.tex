@@ -27,42 +27,7 @@ parameters. In table \ref{tab:otp_behaviours} the most common
 behaviours in OTP are presented, along with some of the callbacks they
 require.
 
-\begin{fulltable}{|c|c|c|}{Common OTP behaviours}{tab:otp_behaviours}
-\hline
-Module & Description & Callbacks \\
-\hline
-\hline
-\multirow{4}{*}{gen\_server.erl}
-& Generic server behaviour. Contains a state  & init,        \\
-& that is manipulated by calls (that require  & handle\_call,\\
-& a reply) and casts (that do not wait for a  & handle\_cast,\\
-& reply).                                     & terminate    \\
-\hline
-\multirow{5}{*}{gen\_fsm.erl}
-& Finite state machine behaviour. A finite    & init, State1,\\
-& number of states exist along with the       & State2, ..., \\
-& messages each state accepts, the replies    & StateN,      \\
-& that are sent and the state change that     & terminate    \\
-& may follow.                                 &              \\ 
-\hline
-\multirow{3}{*}{gen\_event.erl}
-& Generic event handler. Event handlers       & init,         \\
-& register in a central event manager and     & handle\_event,\\
-& are notified for any event that arrives.    & terminate     \\
-\hline
-\multirow{4}{*}{application.erl}
-& \er\ application. An application is a       &       \\
-& collection of modules that implement some   & start,\\
-& specific functionality and can be started   & stop  \\
-& and stopped as a whole.                     &       \\
-\hline
-\multirow{4}{*}{supervisor.erl}
-& A process which supervises other processes  &     \\
-& called child processes. A child process can & init\\
-& either be another supervisor or a worker    &     \\
-& process.                                    &     \\
-\hline
-\end{fulltable}
+\include{behaviours_table}
 
 Developers may also write their own behaviours, whenever a common
 infrastructure may be used for many specific implementations.
@@ -163,28 +128,7 @@ former. In this way the discrepancies shown in Table
   OTP team as the documentation on which the callback attributes were
   based might be outdated.}
 
-\begin{fulltable}{|c|c|c|c|}{Behaviour Discrepancies in OTP Applications}{tab:erl_apps_behaviours}
-\hline
-Application & Description & Behaviour Used & Discrepancies\\
-\hline
-\hline
-\multirow{2}{*}{inets}& \multirow{2}{*}{Internet clients and servers}&
-gen\_server & 1 \\
-\cline{3-4}  
-& & tftp & 1 \\
-\hline
-dist\_ac & distributed application controller & gen\_server & 1 \\
-\hline
-mnesia & distributed DBMS & gen\_server & 2 \\
-\hline
-ssh & SSH application & gen\_server & 2 \\
-\hline
-error\_logger & Stdlib's error logger & gen\_server & 1 \\
-\hline
-\hline
-\multicolumn{3}{|c|}{\textbf{Total discrepancies}} & 8 \\
-\hline
-\end{fulltable}
+\include{behaviours_results}
 
 All these discrepancies correspond to cases where a callback has a
 wider return type than the one described in the relevant

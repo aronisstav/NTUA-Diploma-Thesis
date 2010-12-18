@@ -1,0 +1,36 @@
+\begin{fulltable}{|c|c|c|}{Common OTP behaviours}{tab:otp_behaviours}
+\hline
+Module & Description & Callbacks \\
+\hline
+\hline
+\multirow{4}{*}{gen\_server.erl}
+& Generic server behaviour. Contains a state  & init,        \\
+& that is manipulated by calls (that require  & handle\_call,\\
+& a reply) and casts (that do not wait for a  & handle\_cast,\\
+& reply).                                     & terminate    \\
+\hline
+\multirow{5}{*}{gen\_fsm.erl}
+& Finite state machine behaviour. A finite    & init, State1,\\
+& number of states exist along with the       & State2, ..., \\
+& messages each state accepts, the replies    & StateN,      \\
+& that are sent and the state change that     & terminate    \\
+& may follow.                                 &              \\ 
+\hline
+\multirow{3}{*}{gen\_event.erl}
+& Generic event handler. Event handlers       & init,         \\
+& register in a central event manager and     & handle\_event,\\
+& are notified for any event that arrives.    & terminate     \\
+\hline
+\multirow{4}{*}{application.erl}
+& \er\ application. An application is a       &       \\
+& collection of modules that implement some   & start,\\
+& specific functionality and can be started   & stop  \\
+& and stopped as a whole.                     &       \\
+\hline
+\multirow{4}{*}{supervisor.erl}
+& A process which supervises other processes  &     \\
+& called child processes. A child process can & init\\
+& either be another supervisor or a worker    &     \\
+& process.                                    &     \\
+\hline
+\end{fulltable}
