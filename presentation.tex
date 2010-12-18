@@ -3,17 +3,67 @@
 \usepackage[cm-default]{fontspec}
 \usepackage{xunicode}
 \usepackage{xltxtra}
-\setmainfont[Mapping=tex-text]{DejaVu Sans}
-
+\usepackage{multirow}
 \usepackage{graphicx}
-\usepackage{amssymb}
+
+\setmainfont[Mapping=tex-text]{DejaVu Sans}
 
 \usetheme{Pittsburgh}
 \useinnertheme{rounded}
 \usefonttheme{serif}
 \usecolortheme{beaver}
 
-\title{Τεχνικές βελτίωσης της αποτελεσματικότητας εύρεσης λαθών
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}{
+  \leavevmode
+  \hbox{
+    \begin{beamercolorbox}[wd=.5\paperwidth,ht=2.5ex,dp=1.125ex,right]
+      {author in head/foot}
+      \usebeamerfont{title in head/foot}
+      \insertshortauthor
+      \hspace{.3cm}
+    \end{beamercolorbox}%
+    
+    \begin{beamercolorbox}[wd=.40\paperwidth,ht=2.5ex,dp=1.125ex,left]
+      {title in head/foot}
+      \usebeamerfont{author in head/foot}\
+      \hspace{.3cm}
+      \insertshorttitle
+    \end{beamercolorbox}
+    
+    \begin{beamercolorbox}[wd=.10\paperwidth,ht=2.5ex,dp=1.125ex,center]
+      {title in head/foot}
+      \usebeamerfont{author in head/foot}
+      \insertframenumber/\inserttotalframenumber
+    \end{beamercolorbox}
+  }
+  \vskip0pt
+}
+
+\include{erlang}
+
+\lstnewenvironment{code}[1]{
+    \nopagebreak
+    \lstset{title={#1},numbers=left}
+}{}
+
+\newenvironment{fulltable}[3]{
+  \def\tempcaption{#2}
+  \begin{table}[hbtp]
+    \tiny
+    \begin{center}
+      \begin{tabular}[c]{#1}
+}{
+      \end{tabular}
+    \end{center}
+    \caption{\tempcaption}
+  \end{table}
+}
+
+\newcommand{\er}{Erlang}
+
+\title[Διπλωματική εργασία]
+      {Τεχνικές βελτίωσης της αποτελεσματικότητας εύρεσης λαθών
        σε προγράμματα μέσω στατικής ανάλυσης}
 \author{Σταύρος Αρώνης}
 \date{?? Δεκεμβρίου 2010}
@@ -30,45 +80,86 @@
 \begin{document}
 
 \begin{frame}
-	\titlepage
-	\begin{center}
-		\includegraphics[width=2.5cm]{pyrforos}
-	\end{center}
+  \titlepage
+  \begin{center}
+    \includegraphics[width=2.5cm]{pyrforos}
+  \end{center}
 \end{frame}
 
 \begin{frame}
-	\frametitle{Overview}
-	\tableofcontents[hidesubsections]
+  \frametitle{Overview}
+  \tableofcontents[hidesubsections]
 \end{frame}
 
 \section{Goals}
 
 \begin{frame}
-	\frametitle{Goals}
-	\begin{itemize}
-		\item \textbf{Initial goal:} Detect discrepancies
-		in the use of Erlang's \emph{behaviours}
-		\pause
-		\begin{itemize}
-			\item Formally describe the expected use
-			\pause
-			\item Use the description to automatically
-			check for abuses using Dialyzer
-			\pause
-			\item Deal with the false positives
-		\end{itemize}
-		\pause
-		\item \textbf{More interesting goal:} Add
-		\emph{intersection types} in Dialyzer
-		\pause
-		\begin{itemize}
-			\item Decide on structure and semantics
-			\pause
-			\item Infer them
-			\pause
-			\item Use them!
-		\end{itemize}
-	\end{itemize}
+  \frametitle{Goals}
+  \begin{itemize}
+  \item \textbf{Initial goal:} Detect discrepancies in the use of
+    Erlang's \emph{behaviours} \pause
+    \begin{itemize}
+    \item Formally describe the expected use \pause
+    \item Use the description to automatically check for abuses using
+      Dialyzer \pause
+    \item Deal with the false positives
+    \end{itemize}
+    \pause
+  \item \textbf{More interesting goal:} Add \emph{intersection types}
+    in Dialyzer \pause
+    \begin{itemize}
+    \item Decide on structure and semantics \pause
+    \item Infer them \pause
+    \item Use them!
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\section{Introduction}
+
+\begin{frame}
+  \frametitle{Erlang} \textbf{Erlang} is a
+  \begin{itemize}
+  \item functional
+  \item strict
+  \item \textbf{dynamically typed}
+  \end{itemize}
+  language that specializes in:
+  \begin{itemize}
+  \item concurrency
+  \item communication
+  \item distribution
+  \item fault-tolerance
+  \item on-the-fly code reloading
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{OTP distribution} The main implementation of the
+  language, the Erlang OTP (Open Telecom Platform) system from
+  Ericsson, has been open source since 1998.  \pause It includes:
+  \begin{itemize}
+  \item Runtime system
+  \item Libraries
+  \item Dialyzer
+  \item \textbf{Behaviours}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Dialyzer} Dialyzer is a static analysis tool included in
+  the OTP since 2007. \pause It can detect:
+  \begin{itemize}
+  \item Type errors
+  \item Exception-raising code
+  \item Unsatisfiable conditions
+  \item Unreachable code
+  \item Race conditions
+  \end{itemize}
+  \pause
+  \begin{center}
+    \textbf{Automatically}
+  \end{center}
 \end{frame}
 
 \section{Behaviours}
@@ -76,59 +167,569 @@
 \subsection{What are behaviours?}
 
 \begin{frame}
-	\frametitle{Erlang}
-	\textbf{Erlang} is
-	\begin{itemize}
-		\item functional
-		\item strict
-		\item \textbf{dynamically typed}
-	\end{itemize}
-	that specializes in:
-	\begin{itemize}
-		\item concurrency
-		\item communication
-		\item distribution
-		\item fault-tolerance
-		\item on-the-fly code reloading
-	\end{itemize}
+  \frametitle{Behaviours}
+  \begin{itemize}
+  \item \textbf{Behaviours:} the equivalent of object-oriented
+    languages' \emph{abstract classes} or \emph{interfaces} \pause
+  \item They divide the functionality of a component into a generic
+    part (the \emph{behaviour} module) and a specific part (the
+    \emph{callback} module) \pause
+  \item OTP includes behaviours for:
+    \begin{itemize}
+    \item applications
+    \item servers
+    \item finite state machines
+    \item event handlers
+    \item ...
+    \end{itemize}
+  \end{itemize}
 \end{frame}
 
 \begin{frame}
-	\frametitle{OTP distribution}
-	The main implementation of the language, the Erlang OTP 
-	(Open Telecom Platform) system from Ericsson, has been
-	open source since 1998. It includes:
-	\pause
-	\begin{itemize}
-		\item Runtime system
-		\item Libraries
-		\item \textbf{Behaviours}
-	\end{itemize}
-\end{frame}
-
-\begin{frame}
-	\frametitle{Behaviours}
-	\begin{itemize}
-		\item \textbf{Behaviours:} the equivalent of
-		object-oriented languages' \emph{abstract classes}
-		or \emph{interfaces}
-		\pause
-		\item 
-	\end{itemize}
+  \frametitle{OTP Behaviours}
+  \include{behaviours_table}
 \end{frame}
 
 \subsection{Definition of a behaviour}
+
+\begin{frame}[fragile]
+  \frametitle{How did behaviours look like?}
+\begin{code}{Generic server's existing declaration of callbacks}
+-export([behaviour_info/1]).
+
+behaviour_info(callbacks) ->
+  [{init,1}, {handle_call,3}, {handle_cast,2},
+   {terminate, 2}, {code_change, 3}].
+
+%%% The user module should export:
+%%%
+%%%   init(Args)
+%%%     ==> {ok, State}
+%%%         {ok, State, Timeout}
+%%%         ignore
+%%%         {stop, Reason}
+%%%
+%%% ....  COMMENTS FOR THE OTHER CALLBACKS HERE .....
+\end{code}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{New declaration of behaviours}
+\begin{code}{Declaration of the same callbacks using attributes}
+-callback init(Args :: term()) ->
+    {ok, State :: term()} |
+    {ok, State :: term(), timeout() | hibernate} |
+    {stop, Reason :: term()} | 
+    ignore.
+
+%%% .... MORE CALLBACK ATTRIBUTES .... %%%
+\end{code}
+\end{frame}
+
 \subsection{Checking the use of a behaviour}
-\subsection{The false positive warnings}
+
+\begin{frame}
+  \frametitle{Checking the use of a behaviour}
+  \begin{itemize}
+    \item Dialyzer can infer a \emph{success typing} for the callbacks
+      \pause
+    \item Using the \emph{-callback} attributes as reference we can
+      ensure that the callback functions:
+      \begin{itemize}
+        \item accept the required arguments \pause
+        \item return values that belong to the expected results
+      \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{A simple discrepancy}
+\begin{code}{Gen\_server's handle cast callback}
+-callback handle_cast(Request :: term(),
+                      State :: term()) ->
+  {noreply, NewState :: term()} | 
+  {noreply, NewState :: term(), timeout() | hibernate} | 
+  {stop, Reason :: term(), NewState :: term()}.
+\end{code}
+\begin{code}{Example from httpd\_request\_handler.erl}
+handle_cast(Msg, State) ->
+    {reply, {cast_api_violation, Msg}, State}.
+\end{code}
+\end{frame}
+
+\subsection{False positive warnings}
+
+\begin{frame}[fragile]
+  \frametitle{A false warning}
+  Some cases are not straightforward...
+\begin{code}{Simplified example from mnesia\_recover.erl}
+  handle_info({connect_nodes, Ns, From}, State) ->
+    handle_call({connect_nodes,Ns},From,State);
+
+  handle_call({disconnect, Node}, _From, State) ->
+    ...
+    {reply, ok, State};
+  handle_call({connect_nodes, Ns}, From, State) ->
+    ...
+    {noreply, State}.
+\end{code}
+  \pause
+  \begin{itemize}
+  \item A warning is emitted for handle\_info, even though the call is
+    safe. \pause
+  \item The reason lies in Dialyzer's type system...
+  \end{itemize}
+\end{frame}
 
 \section{Intersection types}
 
-\subsection{Dialyzer's function type deficits}
+\subsection{Dialyzer's types}
+
+\begin{frame}[fragile]
+  \frametitle{Dialyzer's types}
+\begin{code}{Handle\_call's type from previous example}
+  -spec handle_call({disconnect | connect_nodes, _},
+                    _, _) ->
+    {reply, ok, _} | {noreply, _}.
+\end{code}
+  \begin{itemize}
+    \item Dialyzer infers a ``flat'' type \pause      
+    \item Refinement does not help
+  \end{itemize}
+  \pause Ideally the success typing should be:
+\begin{code}{Type with separate clauses}
+  -spec handle_call({disconnect, _}, _, _)
+                       -> {reply, ok, _};
+        handle_call({connect_nodes, _}, _, _)
+                       -> {noreply, _}.
+\end{code}
+\end{frame}
+
 \subsection{Intersection types}
+
+\begin{frame}[fragile]
+  \frametitle{Intersection types}
+  \begin{itemize}
+  \item Types describe sets of terms \pause
+  \item An \textbf{Intersection type} describes a set whose elements
+    belong simultaneously to two or more other sets \pause
+  \item Overloaded functions' types can use intersections:
+    \begin{code}{Simple intersection type for add}
+-spec add(integer(), integer()) -> integer();
+      add(float()  , float()  ) -> float().
+    \end{code}
+  \end{itemize}
+\end{frame}
+
 \subsection{Structure and semantics}
+
+\begin{frame}[fragile]
+  \frametitle{Structure and semantics}
+  \begin{code}{Example}
+-spec foo(a     ) -> 1;
+      foo(b     ) -> 2;
+      foo(atom()) -> 3.
+  \end{code}
+  \begin{itemize}
+  \item List of clauses \pause
+  \item Order does NOT matter \pause
+  \item In a call the result is the supremum of the result of all
+    applicable domains \pause
+  \item Catch all clauses are included everywhere
+  \end{itemize}
+\end{frame}
+
 \subsection{Inference}
-\subsection{Usage}
+
+\begin{frame}
+  \frametitle{Inference}
+  Dialyzer infers the success typings using these steps:
+  \begin{itemize}
+  \item Obtain function ordering from callgraph
+  \item For every function:
+    \begin{itemize}
+    \item Assign type variables to the code variables
+    \item Generate constraints for the type variables
+    \item Solve the constraints to obtain success typings
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Constraint categories}
+  Constraints belong to the following structural categories: \pause
+  \begin{itemize}
+  \item \textbf{Simple constraints:} a certain type should be equal to
+    another or subtype of another \pause
+  \item \textbf{Conjunctive lists:} a list of constraints that should be
+    satisfied simultaneously \pause
+  \item \textbf{Disjunctive lists:} a list of constraints that
+    correspond to different branches in the code \pause
+  \item \textbf{Constraint references:} correspond to closures
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Constraints}
+\begin{code}{Sample code}
+bar(1) -> 5;
+bar(2) -> 10.
+
+foo(a) -> b;
+foo(X) -> bar(X).
+\end{code}
+\begin{code}{Constraints for foo}
+Conjunctive List 1:
+ * var(1) eq fun(var(2)) -> var(3)
+ * Disjunctive List 2:
+ *  * Conjunctive List 3:
+ *  *  * var(2) eq a
+ *  *  * var(3) eq b
+ *  * Conjunctive List 4:
+ *  *  * var(2) sub 1|2
+ *  *  * var(4) sub 5|10
+ *  *  * var(3) eq var(4)
+\end{code}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Solving mechanics}
+  \begin{itemize}
+  \item A dictionary for the type variables is attached to every
+    list
+  \item All variables have initial value \emph{any} \pause
+  \item Simple constraints tighten the variables using \emph{infimum}
+    \pause
+  \item Disjunctive lists' dictionaries contain the \emph{supremum} of
+    the types in each list element \pause
+  \item Lists are solved until they reach a fixpoint (checked using
+    type \emph{equality}) \pause
+  \item \textbf{Important:} The final function's type is constructed
+    at top level
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Using dictionaries as environments}
+  \begin{itemize}
+    \item We need to maintain the relations between the values of the
+      type variables \pause
+    \item The dictionaries attached to the lists readily provide a
+      sense of environment: \pause
+      \begin{itemize}
+      \item \emph{Conjunctive lists} hold all the values for each code
+        block \pause
+      \item If every block contains a local type for the whole
+        function, \emph{disjunctive lists} can find a proper
+        \emph{supremum} type for all of their elements
+      \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Changes in type operators} 
+  The following changes are introduced with regard to the function
+  type: \pause
+  \begin{itemize}
+  \item \textbf{Supremum:} instead of taking the supremum of arguments
+    and result, simply add the new clauses to the list \pause
+  \item \textbf{Infimum:} take the infimum of every pair of clauses
+    \pause
+  \item \textbf{Equality:} clauses are ordered and \emph{reduced} so
+    that equality checks are kept fast and efficient
+  \end{itemize} 
+  Other operators needed minor changes due to the change in the type
+  structure
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Clauses reduction examples}
+\begin{code}{Clauses reduction examples}
+  Example 1: Same domains in supremum
+  -----------------------------------
+  Type A  : fun((a) -> b)
+  Type B  : fun((a) -> c)
+  Result  : fun((a) -> b; (a) -> c)
+  Reduced : fun((a) -> b | c)
+  -----------------------------------
+  Example 2: Same ranges in supremum
+  -----------------------------------
+  Type A  : fun((a) -> c)
+  Type B  : fun((b) -> c)
+  Result  : fun((a) -> c; (b) -> c)
+  Reduced : fun((a | b) -> c)
+  -----------------------------------
+  -----------------------------------
+  Initial  : fun((a,c)->e;(a,d)->e;(b,c)->e;(b,d)->e)
+  1st pass : fun((a,c|d) -> e; (b,c|d) -> e)
+  2nd pass : fun((a|b,c|d) -> e)
+\end{code}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Testing the new type operators}
+  \textbf{Testing type operations:} \emph{Property testing} \pause
+  \begin{itemize}
+  \item If Inf is the infimum of F1 and F2 then Inf is a subtype of
+    both of them
+  \item If Sup is the supremum of F1 and F2 then F1 and F2 are
+    subtypes of Sup
+  \item If Sup is the supremum of F1 and F2, Inf1 is the infimum of
+    Sup and F1, Inf2 is the infimum of Sup and F2 then Inf1 is equal
+    to F1 and Inf2 is equal to F2
+  \item The supremum/infimum of F1 and F2 is equal to the
+    supremum/infimum of F2 and F1
+  \item If F1 is subtype of F2 and F2 is subtype of F1 then they are
+    equal
+  \end{itemize} \pause
+  PropEr was used for the generation of random function types and the
+  testing.
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Towards our goal}
+  \begin{itemize}
+    \item \emph{Supremum} is now ready to create an intersectioned
+      type if the clauses are solved completely \pause
+    \item We need to ``push'' the main constraint into each clause \pause
+    \item This might not be enough...
+      \begin{code}{Nested branches}
+foo(X, Y) ->
+  case X of
+   a -> b;
+   b -> case Y of
+         a -> c;
+         b -> d
+        end
+  end.
+      \end{code}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Disjunctive normal form}
+  \begin{itemize}
+  \item The \textbf{disjunctive normal form} of the constraints can be
+    used to:
+    \begin{itemize}
+      \item ``push'' the main constraint into each clause
+      \item simplify nested branches
+      \item fallback whenever the constraints are complex
+    \end{itemize} \pause
+  \item We also need to generate disjunctive list constraints when
+    calls are present in the code (\emph{this solves the situation in
+      behaviours})
+    \begin{itemize}
+    \item easy for already solved functions
+    \item more complicated for self-calls and members of a strongly
+      connected component (SCC)
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Self recursive functions and SCCs}
+  \begin{itemize}
+  \item Dialyzer handles self recursive and SCC calls in a special
+    way: \pause
+    \begin{itemize}
+    \item Initially these calls are assumed to fail and are excluded
+      from the success typing \pause
+    \item After the first calculation the base cases have been found
+      and are used as the result of the calls \pause
+    \item This is repeated until a fixpoint is reached \pause
+    \end{itemize}
+  \item Constraint generation and solving are separate procedures
+    therefore \emph{dynamic constraints} need to be added for these
+    calls \pause
+  \item These are substituted in every iteration with the appropriate
+    \emph{disjunctive constraint}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{We are ready!}
+  In short: \pause
+  \begin{itemize}
+  \item During constraint generation constraints from calls become
+    either \emph{disjunction lists} or \emph{dynamic constraints} \pause
+  \item Prior to solving obtain the \emph{disjunctive normal form} of
+    the constraints (for Self-recursive functions and SCCs this is
+    done in every iteration, after \emph{dynamic constraints} have
+    been substituted) \pause
+  \item Solve and get the intersectioned type \pause
+  \item ... or an old-style type if calculation of normal form is
+    inefficient
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{One more refinement...}
+  \begin{itemize}
+  \item Dialyzer's refinement works by collecting the
+    \emph{supremum} of all calls to a local function and
+    using it to restrain the domain \pause
+  \item We can (and should) keep them separate \pause
+  \item Thus we practically refine \emph{each} separate
+    call (\emph{polyvariant control flow analysis})
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Performance issues}
+  In the following cases we fall back to the old single clause type
+  \begin{itemize}
+    \item Too deep \emph{conjunctive normal form}
+    \item SCCs with many functions (e.g. automatically generated
+      parsers)
+    \item Self recursive functions or SCCs that fail to reach fixpoint
+      after several tries:
+\begin{code}{A self recursive numeric identity function}
+    id(0) -> 0; id(N) -> 1 + id(0)
+\end{code}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Detecting discrepancies}
+  \begin{itemize}
+    \item The actual usage of the success typings for discrepancy
+      detection happens in a final dataflow pass on the code under
+      inspection
+    \item The only change is the substitution of the generic lookup
+      for the return type of function calls with a lookup that takes
+      into consideration the types of the arguments
+  \end{itemize}
+\end{frame}
+
+\section{Results}
+
+\begin{frame}
+  \frametitle{Results from behaviours}
+  \include{behaviours_results}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Results from intersections}
+  \include{intersections_results}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Examples for intersections}
+  \begin{code}{A call that will surely fail}
+httpd_request_handler.erl:439: The call
+
+  httpd_response:send_status(ModData, 501, [1..255,...])
+
+  will never return since it differs in the 2nd and/or
+  3rd argument from the success typing arguments:
+
+  (#mod{}, 100|304|400|408|413|416|500|503, any()) or
+  (#mod{}, 301|403|404|414, [any()]) or
+  (#mod{}, 400|401|412, 'none') or
+  (#mod{}, 501, {atom() | [any()],[any()],[any()]})
+
+  %% A rather esoteric warning about the 501
+  %% Not Implemented HTTP status message.
+\end{code}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Examples for intersections}
+\begin{code}{A redundant catch-all clause}
+con_desc(E) ->
+  case cerl:type(E) of
+    cons -> {?cons_id, 2};
+    tuple -> {?tuple_id, cerl:tuple_arity(E)};
+    binary -> {?binary_id, cerl:binary_segments(E)};
+    literal -> case cerl:concrete(E) of
+                 [_|_] -> {?cons_id, 2};
+                 T when is_tuple(T) ->
+                   {?tuple_id, tuple_size(T)};
+                 V -> {?literal_id(V), 0}
+               end;
+    _ ->
+      throw({bad_constructor, E})
+  end.
+
+cerl_pmatch.erl:338(13): The variable _ can never match
+since previous clauses completely covered the type
+'binary' | 'cons' | 'literal' | 'tuple'
+\end{code}
+
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Examples for intersections}
+\begin{code}{A path that ends in a call to \emph{exit}}
+check_if_valid_tag(<<>>, _, OptOrMand) ->
+    check_if_valid_tag2(false,[],[],OptOrMand);
+
+check_if_valid_tag2(_Class_TagNo, [], Tag, MandOrOpt) ->
+    check_if_valid_tag2_error(Tag,MandOrOpt);
+
+check_if_valid_tag2_error(Tag,mandatory) ->
+    exit({error,{asn1,{invalid_tag,Tag}}});
+check_if_valid_tag2_error(Tag,_) ->
+    exit({error,{asn1,{no_optional_tag,Tag}}}).
+
+asn1rt_ber_bin.erl:2200(2): The call
+ asn1rt_ber_bin:check_if_valid_tag2('false',[],[],any())
+ will never return since it differs in the 2nd argument
+ from the success typing arguments: ('false' |
+ {'APPLICATION',_} | {'CONTEXT',_} | {'PRIVATE',_} |
+ {'UNIVERSAL',_},nonempty_maybe_improper_list(),[] |
+ {_,_,_},any())
+\end{code}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Demo!}
+  \begin{center}
+    Demo!
+  \end{center}
+\end{frame}
 
 \section{Conclusion}
 
+\begin{frame}
+  \frametitle{Related work}
+  The general topic of static type analysis for languages with dynamic
+  type systems is not new. There have been approaches similar to
+  Dialyzer for:
+  \begin{itemize}
+  \item Ruby (Diamondback Ruby)
+  \item Dylan (which is based on Lisp)
+  \item JavaScript
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Further work}
+  \begin{itemize}
+  \item Negative types for Dialyzer
+    \begin{itemize}
+    \item Completes the semantics of the language
+    \item Will help in catching more discrepancies:
+\begin{code}{A discrepancy we still miss}
+foo(a) -> b;
+foo(X) -> X.
+
+bar() ->
+    a = foo(a).
+\end{code}
+    \end{itemize} \pause
+  \item Tighter coupling between the type and the code \pause
+  \item Advanced refinement using ``covers''
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \begin{center}
+    Thank you!
+  \end{center}
+\end{frame}
+
 \end{document}
+
+% xelatex -interaction=nonstopmode presentation.tex; evince presentation.pdf
