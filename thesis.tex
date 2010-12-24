@@ -109,9 +109,11 @@
 \include{conclusions}
 
 % \backmatter
-% \phantomsection % correct hyperlinking
-\bibliographystyle{plain} % plain/abbrv/alpha/abstract/apalike/...
+\cleardoublepage % start at the next odd page
+\phantomsection % correct hyperlinking
+\addcontentsline{toc}{chapter}{\bibname} % add bibliography section to toc
 \bibliography{references}
+\bibliographystyle{plain} % plain/abbrv/alpha/abstract/apalike/...
 % \include{glossary}
 % \chapter{Appendix}
 % \printindex

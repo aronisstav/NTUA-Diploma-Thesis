@@ -1,7 +1,11 @@
 *
-!*.tex
-!*.bib
-!*.eps
+
 !.gitignore
 !README
+
+!*.bib
+!*.cls
+!*.eps
+!*.tex
+
 !clean
