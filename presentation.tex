@@ -1,4 +1,4 @@
-\documentclass{beamer}
+\documentclass[handout]{beamer}
 
 \usepackage[cm-default]{fontspec}
 \usepackage{xunicode}
@@ -82,7 +82,7 @@
 \begin{frame}
   \titlepage
   \begin{center}
-    \includegraphics[width=2.5cm]{pyrforos}
+    \includegraphics[width=2cm]{pyrforos}
   \end{center}
 \end{frame}
 
@@ -353,6 +353,8 @@ handle_cast(Msg, State) ->
     \item Solve the constraints to obtain success typings
     \end{itemize}
   \end{itemize}
+  The success typings may be stored in a Persistent Lookup Table (PLT)
+  to avoid needless recalculations.
 \end{frame}
 
 \begin{frame}
@@ -399,7 +401,7 @@ Conjunctive List 1:
     list
   \item All variables have initial value \emph{any} \pause
   \item Simple constraints tighten the variables using \emph{infimum}
-    \pause
+    and \emph{unification} \pause
   \item Disjunctive lists' dictionaries contain the \emph{supremum} of
     the types in each list element \pause
   \item Lists are solved until they reach a fixpoint (checked using
