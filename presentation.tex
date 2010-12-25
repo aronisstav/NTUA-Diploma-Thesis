@@ -66,7 +66,7 @@
       {Τεχνικές βελτίωσης της αποτελεσματικότητας εύρεσης λαθών
        σε προγράμματα μέσω στατικής ανάλυσης}
 \author{Σταύρος Αρώνης}
-\date{?? Δεκεμβρίου 2010}
+\date{?? Ιανουαρίου 2011}
 \institute{Διπλωματική εργασία\\Σχολή ΗΜΜΥ, ΕΜΠ}
 
 \AtBeginSection[]
@@ -374,8 +374,8 @@ handle_cast(Msg, State) ->
 \begin{frame}[fragile]
   \frametitle{Constraints}
 \begin{code}{Sample code}
-bar(1) -> 5;
-bar(2) -> 10.
+bar(1) -> 5;  % Success typing: 
+bar(2) -> 10. % bar(1|2) -> 5|10
 
 foo(a) -> b;
 foo(X) -> bar(X).
@@ -561,7 +561,7 @@ foo(X, Y) ->
     been substituted) \pause
   \item Solve and get the intersectioned type \pause
   \item ... or an old-style type if calculation of normal form is
-    inefficient
+    deemed to be inefficient
   \end{itemize}
 \end{frame}
 
