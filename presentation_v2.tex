@@ -163,7 +163,7 @@ foo(X) -> case empty(X) of
 length     [] = 0
 length (_:xs) = 1 + length xs
 \end{code} \pause
-    \item Meybe we can find an even better type? \pause
+    \item Maybe we can find an even better type? \pause
 \begin{code}{Like this?}
 []      -> 0
 [_,...] -> positive_integer()
