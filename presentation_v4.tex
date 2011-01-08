@@ -93,85 +93,228 @@
   \end{center}
 \end{frame}
 
-\section*{Prelude}
+\section{Goals}
+
+\begin{frame}
+  \frametitle{Goals}
+  \begin{itemize}
+  \item \textbf{Initial goal:} Detect discrepancies in the use of
+    Erlang's \emph{behaviours}
+    \begin{itemize}
+    \item Formally describe the expected use
+    \item Use the description to automatically check for abuses using
+      Dialyzer
+    \item Deal with false warnings
+    \end{itemize}
+    \pause
+  \item \textbf{More interesting goal:} Add \emph{intersection types}
+    in Dialyzer
+    \begin{itemize}
+    \item Decide on structure and semantics
+    \item Infer them
+    \item Use them!
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\section{Introduction}
+
+\begin{frame}
+  \frametitle{Erlang} \textbf{Erlang} is a
+  \begin{itemize}
+  \item functional
+  \item strict
+  \item \textbf{dynamically typed}
+  \end{itemize}
+  language that specializes in:
+  \begin{itemize}
+  \item concurrency
+  \item communication
+  \item distribution
+  \item fault-tolerance
+  \item on-the-fly code reloading
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{OTP distribution} The main implementation of the
+  language, the Erlang OTP (Open Telecom Platform) system from
+  Ericsson, has been open source since 1998.  \pause It includes:
+  \begin{itemize}
+  \item Runtime system
+  \item Libraries
+  \item Dialyzer
+  \item Behaviours
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Dialyzer} Dialyzer is a static analysis tool included in
+  the OTP since 2007. It can detect:
+  \begin{itemize}
+  \item Type errors
+  \item Exception-raising code
+  \item Unsatisfiable conditions
+  \item Unreachable code
+  \item Race conditions
+  \end{itemize}
+  \pause
+  \begin{center}
+    \textbf{Automatically} \\
+    \small (but may take into account contracts provided by the user)
+  \end{center}
+\end{frame}
 
 \begin{frame}[fragile]
-  \frametitle{An elementary question...}
-  What is the type of the following function?
-\begin{code}{List length}
-length     [] = 0
-length (_:xs) = 1 + length xs
+  \frametitle{Contracts}
+\begin{code}{A contract}
+-spec foo(atom()) -> atom().
+
+foo(a) -> b;
+foo(b) -> c;
+foo(c) -> a.
+
+-spec bar(17) -> 17;
+      bar(42) -> 42.
+
+bar(X) -> X.
 \end{code}
-\pause
-\begin{code}{Haskell}
-[a] -> Int
-\end{code}
-\begin{code}{SML}
-'a list -> int
-\end{code}
-\pause
-\begin{code}{Erlang's Dialyzer (\st)}
-[_] -> non_negative_integer()
+\end{frame}
+
+\section{Behaviours}
+
+\subsection{What are behaviours?}
+
+\begin{frame}
+  \frametitle{Behaviours}
+  \begin{itemize}
+  \item \textbf{Behaviours:} the equivalent of object-oriented
+    languages' \emph{abstract classes} or \emph{interfaces} \pause
+  \item They divide the functionality of a component into a generic
+    part (the \emph{behaviour} module) and a specific part (the
+    \emph{callback} module) \pause
+  \item OTP includes behaviours for:
+    \begin{itemize}
+    \item applications
+    \item servers
+    \item finite state machines
+    \item event handlers
+    \item ...
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{OTP Behaviours}
+  \include{behaviours_table}
+\end{frame}
+
+\subsection{Definition of a behaviour}
+
+\begin{frame}[fragile]
+  \frametitle{How did behaviours look like?}
+\begin{code}{Generic server's existing declaration of callbacks}
+-export([behaviour_info/1]).
+
+behaviour_info(callbacks) ->
+  [{init,1}, {handle_call,3}, {handle_cast,2},
+   {terminate, 2}, {code_change, 3}].
+
+%%% The user module should export:
+%%%
+%%%   init(Args)
+%%%     ==> {ok, State}
+%%%         {ok, State, Timeout}
+%%%         ignore
+%%%         {stop, Reason}
+%%%
+%%% ....  COMMENTS FOR THE OTHER CALLBACKS HERE .....
 \end{code}
 \end{frame}
 
 \begin{frame}[fragile]
-  \frametitle{Does it really matter?}
-\begin{code}{Example}
-fun foo x = if (length x) < 0 then 0 else 1
-\end{code}
-  \pause
-  \begin{itemize}
-  \item Haskell and ML won't complain \pause
-  \item Dialyzer will!
-\begin{code}{Same example in Erlang}
-foo(X) -> Length = length(X),
-          if Length < 0 -> 0;
-             true       -> 1
-          end.
+  \frametitle{New declaration of behaviours}
+\begin{code}{Declaration of the same callbacks using attributes}
+-callback init(Args :: term()) ->
+    {ok, State :: term()} |
+    {ok, State :: term(), timeout() | hibernate} |
+    {stop, Reason :: term()} | 
+    ignore.
 
-%% WARNING! %%
-Guard test Length::non_neg_integer() < 0 
-can never succeed
+%%% .... MORE CALLBACK ATTRIBUTES .... %%%
 \end{code}
+\end{frame}
+
+\subsection{Checking the use of a behaviour}
+
+\begin{frame}
+  \frametitle{Checking the use of a behaviour}
+  \begin{itemize}
+    \item Dialyzer can infer a \emph{success typing} for the callbacks
+      \pause
+    \item Using the \emph{-callback} attributes as reference we can
+      ensure that the callback functions:
+      \begin{itemize}
+        \item accept the required arguments
+        \item return values that belong to the expected results
+      \end{itemize}
   \end{itemize}
 \end{frame}
 
 \begin{frame}[fragile]
-  \frametitle{Setting up a crime scene...}
-\begin{code}{Empty list check}
-empty([]   ) -> true;
-empty([_|_]) -> false.
+  \frametitle{A simple discrepancy}
+\begin{code}{Gen\_server's handle cast callback}
+-callback handle_cast(Request :: term(),
+                      State :: term()) ->
+  {noreply, NewState :: term()} | 
+  {noreply, NewState :: term(), timeout() | hibernate} | 
+  {stop, Reason :: term(), NewState :: term()}.
 \end{code}
-\pause
-\begin{code}{Dialyzer's \st}
-[_] -> boolean()
-\end{code}
-\pause
-\begin{code}{Sneakier example}
-foo(X) -> case empty(X) of
-            true  -> ...;
-            false -> Length = length(X),
-                     if Length =:= 0 -> ...;
-                        true         -> ...
-                     end
-          end.
+\begin{code}{Example from httpd\_request\_handler.erl}
+handle_cast(Msg, State) ->
+    {reply, {cast_api_violation, Msg}, State}.
 \end{code}
 \end{frame}
 
+\subsection{False positive warnings}
+
 \begin{frame}[fragile]
-  \frametitle{It escaped!}
+  \frametitle{A false warning}
+  Some cases are not straightforward...
+\begin{code}{Simplified example from mnesia\_recover.erl}
+  handle_info({connect_nodes, Ns, From}, State) ->
+    handle_call({connect_nodes,Ns},From,State);
+
+  handle_call({disconnect, Node}, _From, State) ->
+    ...
+    {reply, ok, State};
+  handle_call({connect_nodes, Ns}, From, State) ->
+    ...
+    {noreply, State}.
+\end{code}
+  \pause
   \begin{itemize}
-    \item Dialyzer missed that one... \pause
-    \item ... but the information was there
-\begin{code}{List length}
-length     [] = 0
-length (_:xs) = 1 + length xs
-\end{code} \pause
-    \item Maybe we can find an even better type? \pause
-\begin{code}{Like this?}
-[]      -> 0
-[_,...] -> positive_integer()
+  \item A warning is emitted for handle\_info, even though the call is
+    safe. \pause
+  \item The reason lies in Dialyzer's type system...
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Dialyzer's types}
+\begin{code}{Handle\_call's type from previous example}
+  -spec handle_call({disconnect | connect_nodes, _},
+                    _, _) ->
+    {reply, ok, _} | {noreply, _}.
+\end{code}
+  \begin{itemize}
+    \item Dialyzer infers a ``flat'' type \pause      
+    \item Ideally the success typing should be:
+\begin{code}{Type with separate clauses}
+  -spec handle_call({disconnect, _}, _, _)
+                       -> {reply, ok, _};
+        handle_call({connect_nodes, _}, _, _)
+                       -> {noreply, _}.
 \end{code}
   \end{itemize}
 \end{frame}
@@ -253,12 +396,12 @@ foo(a) -> b;
 foo(X) -> bar(X).
 \end{code}
 \begin{code}{Constraints for foo}
-Conjunctive List 1:
- * var(1) eq fun(var(2)) -> var(3)
- * Disjunctive List 2:
- *  * Conjunctive List 3:
- *  *  * var(2) eq a
- *  *  * var(3) eq b
+Conjunctive List 1:                % Type Variables
+ * var(1) eq fun(var(2)) -> var(3) % --------------
+ * Disjunctive List 2:             % 1: foo's type
+ *  * Conjunctive List 3:          % 2: argument's type
+ *  *  * var(2) eq a               % 3: result's type
+ *  *  * var(3) eq b               % 4: bar call's type
  *  * Conjunctive List 4:
  *  *  * var(2) sub 1|2
  *  *  * var(4) sub 5|10
@@ -399,23 +542,17 @@ Conjunctive List 1:
   testing.
 \end{frame}
 
-\begin{frame}[fragile]
+\begin{frame}
   \frametitle{Towards our goal}
   \begin{itemize}
     \item \emph{Supremum} is now ready to create an intersectioned
       type if the clauses are solved completely
-    \item We need to ``push'' the main constraint into each clause \pause
-    \item This might not be enough...
-      \begin{code}{Nested branches}
-foo(X, Y) ->
-  case X of
-   a -> b;
-   b -> case Y of
-         a -> c;
-         b -> d
-        end
-  end.
-      \end{code}
+    \item We need to ``push'' the main constraint into each clause
+      \pause
+    \item One simple way to do this: take the \textbf{disjunctive
+      normal form} of the constraints
+    \item ... which is already used sparingly in the specialization of
+      guards
   \end{itemize}
 \end{frame}
 
@@ -491,13 +628,13 @@ foo(X, Y) ->
   \frametitle{Performance issues}
   In the following cases we fall back to the old single clause type
   \begin{itemize}
-    \item Too deep \emph{conjunctive normal form}
+    \item Too deep \emph{disjunctive normal form}
     \item SCCs with many functions (e.g. automatically generated
       parsers)
     \item Self recursive functions or SCCs that fail to reach fixpoint
       after several tries:
 \begin{code}{A self recursive numeric identity function}
-    id(0) -> 0; id(N) -> 1 + id(0)
+    id(0) -> 0; id(N) -> 1 + id(N-1)
 \end{code}
   \end{itemize}
 \end{frame}
@@ -512,124 +649,6 @@ foo(X, Y) ->
       for the return type of function calls with a lookup that takes
       into consideration the types of the arguments
   \end{itemize}
-\end{frame}
-
-\section{Application: Analysis of behaviours}
-
-\subsection{What are behaviours?}
-
-\begin{frame}
-  \frametitle{Behaviours}
-  \begin{itemize}
-  \item \textbf{Behaviours:} the equivalent of object-oriented
-    languages' \emph{abstract classes} or \emph{interfaces} \pause
-  \item They divide the functionality of a component into a generic
-    part (the \emph{behaviour} module) and a specific part (the
-    \emph{callback} module) \pause
-  \item OTP includes behaviours for:
-    \begin{itemize}
-    \item applications
-    \item servers
-    \item finite state machines
-    \item event handlers
-    \item ...
-    \end{itemize}
-  \end{itemize}
-\end{frame}
-
-\begin{frame}
-  \frametitle{OTP Behaviours}
-  \include{behaviours_table}
-\end{frame}
-
-\subsection{Definition of a behaviour}
-
-\begin{frame}[fragile]
-  \frametitle{How did behaviours look like?}
-\begin{code}{Generic server's existing declaration of callbacks}
--export([behaviour_info/1]).
-
-behaviour_info(callbacks) ->
-  [{init,1}, {handle_call,3}, {handle_cast,2},
-   {terminate, 2}, {code_change, 3}].
-
-%%% The user module should export:
-%%%
-%%%   init(Args)
-%%%     ==> {ok, State}
-%%%         {ok, State, Timeout}
-%%%         ignore
-%%%         {stop, Reason}
-%%%
-%%% ....  COMMENTS FOR THE OTHER CALLBACKS HERE .....
-\end{code}
-\end{frame}
-
-\begin{frame}[fragile]
-  \frametitle{New declaration of behaviours}
-\begin{code}{Declaration of the same callbacks using attributes}
--callback init(Args :: term()) ->
-    {ok, State :: term()} |
-    {ok, State :: term(), timeout() | hibernate} |
-    {stop, Reason :: term()} | 
-    ignore.
-
-%%% .... MORE CALLBACK ATTRIBUTES .... %%%
-\end{code}
-\end{frame}
-
-\subsection{Checking the use of a behaviour}
-
-\begin{frame}
-  \frametitle{Checking the use of a behaviour}
-  \begin{itemize}
-    \item Dialyzer can infer a \emph{success typing} for the callbacks
-      \pause
-    \item Using the \emph{-callback} attributes as reference we can
-      ensure that the callback functions:
-      \begin{itemize}
-        \item accept the required arguments
-        \item return values that belong to the expected results
-      \end{itemize}
-  \end{itemize}
-\end{frame}
-
-\begin{frame}[fragile]
-  \frametitle{A simple discrepancy}
-\begin{code}{Gen\_server's handle cast callback}
--callback handle_cast(Request :: term(),
-                      State :: term()) ->
-  {noreply, NewState :: term()} | 
-  {noreply, NewState :: term(), timeout() | hibernate} | 
-  {stop, Reason :: term(), NewState :: term()}.
-\end{code}
-\begin{code}{Example from httpd\_request\_handler.erl}
-handle_cast(Msg, State) ->
-    {reply, {cast_api_violation, Msg}, State}.
-\end{code}
-\end{frame}
-
-\subsection{False positive warnings}
-
-\begin{frame}[fragile]
-  \frametitle{A false warning}
-  Some cases are not straightforward...
-\begin{code}{Simplified example from mnesia\_recover.erl}
-  handle_info({connect_nodes, Ns, From}, State) ->
-    handle_call({connect_nodes,Ns},From,State);
-
-  handle_call({disconnect, Node}, _From, State) ->
-    ...
-    {reply, ok, State};
-  handle_call({connect_nodes, Ns}, From, State) ->
-    ...
-    {noreply, State}.
-\end{code}
-\begin{itemize}
-\item A warning is emitted for handle\_info, even though the call is
-  safe.
-\item Using intersection types we get the correct, limited type!
-\end{itemize}
 \end{frame}
 
 \section{Results}
@@ -769,4 +788,4 @@ bar() ->
 
 \end{document}
 
-% xelatex -interaction=nonstopmode presentation_v3.tex; evince presentation_v3.pdf
+% xelatex -interaction=nonstopmode presentation_v4.tex; evince presentation_v4.pdf

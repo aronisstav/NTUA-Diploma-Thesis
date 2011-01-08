@@ -1,4 +1,4 @@
-\documentclass[handout]{beamer}
+\documentclass{beamer}
 
 \usepackage[cm-default]{fontspec}
 \usepackage{xunicode}
@@ -66,8 +66,9 @@
       {Τεχνικές βελτίωσης της αποτελεσματικότητας εύρεσης λαθών
        σε προγράμματα μέσω στατικής ανάλυσης}
 \author{Σταύρος Αρώνης}
-\date{?? Ιανουαρίου 2011}
-\institute{Διπλωματική εργασία\\Σχολή ΗΜΜΥ, ΕΜΠ}
+\date{7 Ιανουαρίου 2011}
+\institute{Σχολή Ηλεκτρολόγων Μηχανικών και Μηχανικών Ηλεκτρονικών Υπολογιστών,
+  Εθνικό Μετσόβιο Πολυτεχνείο}
 
 \AtBeginSection[]
 {
@@ -86,30 +87,25 @@
   \end{center}
 \end{frame}
 
-\begin{frame}
-  \frametitle{Overview}
-  \tableofcontents[hidesubsections]
-\end{frame}
-
 \section{Goals}
 
 \begin{frame}
   \frametitle{Goals}
   \begin{itemize}
   \item \textbf{Initial goal:} Detect discrepancies in the use of
-    Erlang's \emph{behaviours} \pause
+    Erlang's \emph{behaviours}
     \begin{itemize}
-    \item Formally describe the expected use \pause
+    \item Formally describe the expected use
     \item Use the description to automatically check for abuses using
-      Dialyzer \pause
-    \item Deal with the false positives
+      Dialyzer
+    \item Deal with false warnings
     \end{itemize}
     \pause
   \item \textbf{More interesting goal:} Add \emph{intersection types}
-    in Dialyzer \pause
+    in Dialyzer
     \begin{itemize}
-    \item Decide on structure and semantics \pause
-    \item Infer them \pause
+    \item Decide on structure and semantics
+    \item Infer them
     \item Use them!
     \end{itemize}
   \end{itemize}
@@ -148,7 +144,7 @@
 
 \begin{frame}
   \frametitle{Dialyzer} Dialyzer is a static analysis tool included in
-  the OTP since 2007. \pause It can detect:
+  the OTP since 2007. It can detect:
   \begin{itemize}
   \item Type errors
   \item Exception-raising code
@@ -236,7 +232,7 @@ behaviour_info(callbacks) ->
     \item Using the \emph{-callback} attributes as reference we can
       ensure that the callback functions:
       \begin{itemize}
-        \item accept the required arguments \pause
+        \item accept the required arguments
         \item return values that belong to the expected results
       \end{itemize}
   \end{itemize}
@@ -310,9 +306,9 @@ handle_cast(Msg, State) ->
 \begin{frame}[fragile]
   \frametitle{Intersection types}
   \begin{itemize}
-  \item Types describe sets of terms \pause
+  \item Types describe sets of terms
   \item An \textbf{Intersection type} describes a set whose elements
-    belong simultaneously to two or more other sets \pause
+    belong simultaneously to two or more other sets
   \item Overloaded functions' types can use intersections:
     \begin{code}{Simple intersection type for add}
 -spec add(integer(), integer()) -> integer();
@@ -326,15 +322,15 @@ handle_cast(Msg, State) ->
 \begin{frame}[fragile]
   \frametitle{Structure and semantics}
   \begin{code}{Example}
--spec foo(a     ) -> 1;
-      foo(b     ) -> 2;
+-spec foo('a'   ) -> 1;
+      foo('b'   ) -> 2;
       foo(atom()) -> 3.
   \end{code}
   \begin{itemize}
-  \item List of clauses \pause
-  \item Order does NOT matter \pause
+  \item List of clauses
+  \item Order does NOT matter
   \item In a call the result is the supremum of the result of all
-    applicable domains \pause
+    applicable domains
   \item Catch all clauses are included everywhere
   \end{itemize}
 \end{frame}
@@ -345,13 +341,13 @@ handle_cast(Msg, State) ->
   \frametitle{Inference}
   Dialyzer infers the success typings using these steps:
   \begin{itemize}
-  \item Obtain function ordering from callgraph
+  \item Obtain function ordering from callgraph \pause
   \item For every function:
     \begin{itemize}
     \item Assign type variables to the code variables
     \item Generate constraints for the type variables
     \item Solve the constraints to obtain success typings
-    \end{itemize}
+    \end{itemize} \pause
   \end{itemize}
   The success typings may be stored in a Persistent Lookup Table (PLT)
   to avoid needless recalculations.
