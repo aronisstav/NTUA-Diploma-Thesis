@@ -6,7 +6,7 @@
 \er\ is a strict, dynamically typed functional programming language
 with support for concurrency, communication, distribution,
 fault-tolerance, on-the-fly code reloading, automatic memory
-management and support for multiple platforms \cite{joe_book1}. The
+management and support for multiple platforms~\cite{joe_book1}. The
 number of areas where \er\ is actively used is increasing. However,
 its primary application area is still in large-scale embedded control
 systems developed by the telecom industry.
@@ -29,7 +29,7 @@ components that make the use of the language easier. Using these
 components developers are able to take advantage of the aforementioned
 language features. An excellent guide on how to develop a
 fault-tolerant, distributed and concurrent application is available to
-help new developers learn the language quickly \cite{des_princ}.
+help new developers learn the language quickly~\cite{des_princ}.
 
 One of the key elements of the framework are the
 \emph{behaviours}. These correspond to the \emph{abstract classes} or
@@ -38,15 +38,12 @@ they divide the functionality of a component into a generic part (the
 \emph{behaviour} module) and a specific part (the \emph{callback}
 module).
 
-The behaviour module is part of Erlang/OTP. To implement a process
-such as a server, the user only has to implement the callback module
+OTP provides many behaviour modules. To implement a process such as a
+server for example, the user only has to implement the callback module
 which should export a pre-defined set of functions, the callback
 functions. It is also possible for a developer to design his own
 behaviour, either by splitting the functionality of the program or by
-following a known design pattern\cite{behaviours}.
-
-Discrepancies related with \emph{behaviours} are presented in Chapter
-\ref{chp:behaviours}.
+following a known design pattern~\cite{behaviours}.
 
 \section{\dr}
 \label{sct:dialyzer_preliminaries}
@@ -76,7 +73,7 @@ inference problem from a direction opposite to that of type systems
 for statically typed languages.
 
 For the actual workings of \dr\ more details can be found in the
-relevant bibliography \cite{Elli, type_system,
+relevant bibliography~\cite{Elli, type_system,
   springerlink:10.1007/978-3-540-30477-7_7, SuccessTypings@PPDP-06,
   GradualTyping@Erlang-08}. Only some key features will be presented
 concisely as they are relevant with the modifications this thesis
@@ -99,13 +96,13 @@ describes.
 
 \subsection{Refinement of success typings}
 
-In the calculation of success typings, function's that are not
+In the calculation of success typings, functions that are not
 exported undergo a further refinement. The actual calls to these
 functions are used to calculate the effective domain. This is
 possible, as all the calls are located in the module under
 analysis. Restricting the domain may tighten the final success typing
 and possibly render some clauses unneeded. In Listing \ref{lst:refine}
-an example is provided. Even though $foo$'s initial type will be
+an example is provided. Even though \texttt{foo}'s initial type will be
 calculated as $number \rightarrow number$ the final success typing
 will be $42 \rightarrow 43$ allowing a stricter return type for $test$
 as well (initially $number$, finally $43$).
@@ -123,22 +120,21 @@ foo(X) -> X + 1;
 \subsection{Contracts}
 
 \dr\ can take into account annotations placed by developers to further
-restrict the success typings. These are called $specs$ and are used
-for both type checking (by \dr) and documentation (by
-\mbox{\textsc{Edoc}})\cite{type_system}. Their syntax is presented in
-\cite{type_system} and examples are given in Listing
-\ref{lst:specs}. The clauses of a spec should not overlap (a certain
-call must belong in exactly one of them).
+restrict the success typings. These are called
+$specs$~\cite{type_system} and are used for both type checking (by
+\dr) and documentation (by \mbox{\textsc{Edoc}}). Examples are given
+in Listing \ref{lst:specs}. The clauses of a spec should not overlap
+(a certain call must belong in exactly one of them).
 
-\begin{console}{lst:specs}{Valid and invalid specs}
-%% Valid spec with one clause
+\begin{console}{lst:specs}{Permitted and non-permitted specs}
+%% Permitted spec with one clause
 -spec foo(number()) -> number().
 
-%% Valid spec with two clauses
+%% Permitted spec with two clauses
 -spec foo(integer()) -> integer();
          (  float()) -> float().
 
-%% Invalid spec. 'bar' is an atom and overlaps with the 2nd clause
+%% Non-permitted spec. 'bar' is an atom and overlaps with the 2nd clause
 -spec foo( 'bar') -> 'ok';
          (atom()) -> 'error'.
 \end{console}
@@ -163,23 +159,23 @@ will return $Int$ if called with an $Int$ argument and a $Float$ if
 called with $Float$. Type checking is an essential part of the
 semantic analysis of a statically typed language's compiler.
 
-Unfortunately, \er\ is a dynamic typed language, so type checking is
-not part of the compilation. What is more, the relevant tool, \dr, was
+However, \er\ is a dynamically typed language, so type checking is not
+part of the compilation. What is more, the relevant tool, \dr, was
 designed without intersection types. In Listing
 \ref{lst:trivial_intersection} we see a simple overloaded function,
-$foo$. \dr\ using \emph{success typings} will find that the function
-succeeds for arguments $a$ or $b$ and the return may be $1$ or
-$2$. Lacking intersection types, this will be expressed as $a | b
-\rightarrow 1 | 2 $. This is an overapproximation because $foo$ will
-never return 2 if the argument is $a$ and vice-versa. This will cause
-the error presented in the combination of $foo$ with the other
-functions in the example to pass undetected \footnote{In fact this
-  will happen only if $buz$ is exported. Otherwise the refinement
-  described in \ref{sct:dialyzer_preliminaries} will find that buz
-  will be called with $b$ only and will refine $foo$'s type with this
-  info, catching the error.}
+\texttt{foo}. \dr\ using \emph{success typings} will find that the
+function succeeds for arguments $a$ or $b$ and the return may be $1$
+or $2$. Lacking intersection types, this will be expressed as $a | b
+\rightarrow 1 | 2 $. This is an overapproximation because \texttt{foo}
+will never return 2 if the argument is $a$ and vice-versa. This will
+cause the error presented in the combination of \texttt{foo} with the
+other functions in the example to pass undetected \footnote{In fact
+  this will happen only if \texttt{buz} is exported. Otherwise the
+  refinement described in Section \ref{sct:dialyzer_preliminaries}
+  will find that buz will be called with $b$ only and will refine
+  \texttt{foo}'s type with this info, catching the error.}.
 
-\begin{console}{lst:trivial_intersection}{Trivial intersection-related error}
+\begin{console}{lst:trivial_intersection}{Trivial error that can be detected with the use of intersection types}
   foo(a) -> 1;
   foo(b) -> 2.
 
