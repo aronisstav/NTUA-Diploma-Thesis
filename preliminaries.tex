@@ -101,7 +101,7 @@ exported undergo a further refinement. The actual calls to these
 functions are used to calculate the effective domain. This is
 possible, as all the calls are located in the module under
 analysis. Restricting the domain may tighten the final success typing
-and possibly render some clauses unneeded. In Listing \ref{lst:refine}
+and possibly render some clauses unneeded. In Listing~\ref{lst:refine}
 an example is provided. Even though \texttt{foo}'s initial type will be
 calculated as $number \rightarrow number$ the final success typing
 will be $42 \rightarrow 43$ allowing a stricter return type for $test$
@@ -122,9 +122,10 @@ foo(X) -> X + 1;
 \dr\ can take into account annotations placed by developers to further
 restrict the success typings. These are called
 $specs$~\cite{type_system} and are used for both type checking (by
-\dr) and documentation (by \mbox{\textsc{Edoc}}). Examples are given
-in Listing \ref{lst:specs}. The clauses of a spec should not overlap
-(a certain call must belong in exactly one of them).
+\dr) and documentation (by \mbox{\textsc{Edoc}}). The contracts may
+have more than one clauses, as it can be seen in the examples in
+Listing~\ref{lst:specs}. These clauses though should not overlap (a
+certain call must belong in exactly one of them).
 
 \begin{console}{lst:specs}{Permitted and non-permitted specs}
 %% Permitted spec with one clause
@@ -161,19 +162,20 @@ semantic analysis of a statically typed language's compiler.
 
 However, \er\ is a dynamically typed language, so type checking is not
 part of the compilation. What is more, the relevant tool, \dr, was
-designed without intersection types. In Listing
-\ref{lst:trivial_intersection} we see a simple overloaded function,
-\texttt{foo}. \dr\ using \emph{success typings} will find that the
-function succeeds for arguments $a$ or $b$ and the return may be $1$
-or $2$. Lacking intersection types, this will be expressed as $a | b
-\rightarrow 1 | 2 $. This is an overapproximation because \texttt{foo}
-will never return 2 if the argument is $a$ and vice-versa. This will
-cause the error presented in the combination of \texttt{foo} with the
-other functions in the example to pass undetected \footnote{In fact
-  this will happen only if \texttt{buz} is exported. Otherwise the
-  refinement described in Section \ref{sct:dialyzer_preliminaries}
-  will find that buz will be called with $b$ only and will refine
-  \texttt{foo}'s type with this info, catching the error.}.
+designed without intersection types. In
+Listing~\ref{lst:trivial_intersection} we see a simple overloaded
+function, \texttt{foo}. \dr\ using \emph{success typings} will find
+that the function succeeds for arguments $a$ or $b$ and the return may
+be $1$ or $2$. Lacking intersection types, this will be expressed as
+$a | b \rightarrow 1 | 2 $. This is an overapproximation because
+\texttt{foo} will never return 2 if the argument is $a$ and
+vice-versa. This will cause the error presented in the combination of
+\texttt{foo} with the other functions in the example to pass
+undetected \footnote{In fact this will happen only if \texttt{buz} is
+  exported. Otherwise the refinement described in
+  Section~\ref{sct:dialyzer_preliminaries} will find that buz will be
+  called with $b$ only and will refine \texttt{foo}'s type with this
+  info, catching the error.}.
 
 \begin{console}{lst:trivial_intersection}{Trivial error that can be detected with the use of intersection types}
   foo(a) -> 1;
@@ -189,5 +191,6 @@ other functions in the example to pass undetected \footnote{In fact
 \end{console}
 
 The goal of the second part of this thesis is the inference of
-intersection types and is presented in Chapters
-\ref{chp:intersection_generate} and \ref{chp:intersection_usage}.
+intersection types and is presented in
+Chapters~\ref{chp:intersection_generate}
+and~\ref{chp:intersection_usage}.

@@ -15,13 +15,14 @@ conditions~\cite{Races@PADL-10,
 Altough taking part in the development of such a tool is a pleasure in
 itself, this thesis begun with a more concrete motivation: the
 extension of \dr\ to detect discrepancies in the use of \er's
-\emph{behaviours} (more on these in Section
-\ref{sct:behaviour_preliminaries}), including simple type-related
-checks and enabling the new race detection analysis to pass through
-them undistracted. This goal was accomplished easily, as described in
-Chapter \ref{chp:behaviours}, but the cost was that \dr\ produced some
-false warnings that couldn't be avoided using the existing type
-inference algorithm (see Section \ref{sct:behaviour_discrepancies}).
+\emph{behaviours} (more on these in
+Section~\ref{sct:behaviour_preliminaries}), including simple
+type-related checks and enabling the new race detection analysis to
+pass through them undistracted. This goal was accomplished easily, as
+described in Chapter~\ref{chp:behaviours}, but the cost was that
+\dr\ produced some false warnings that couldn't be avoided using the
+existing type inference algorithm (see
+Section~\ref{sct:behaviour_discrepancies}).
 
 As this couldn't be tolerated (one of \dr's cornerstones is that it is
 never wrong about a warning it emits) the second part of this thesis
@@ -30,15 +31,15 @@ discrepancies in code soundly the main question that needs to be
 addressed is not what to include but what to leave outside. One of the
 greatest compromises made in \dr's initial design was that it would
 work with a type system \textbf{without} \emph{intersection types} for
-functions (see Section \ref{sct:dialyzer_preliminaries}). This lead to
-its inability to report glaring errors as the one presented in Section
-\ref{sct:intersection_preliminaries} and was the reason behind the
-violation of soundness in behaviour analysis as well.
+functions (see Section~\ref{sct:dialyzer_preliminaries}). This lead to
+its inability to report glaring errors as the one presented in
+Section~\ref{sct:intersection_preliminaries} and was the reason behind
+the violation of soundness in behaviour analysis as well.
 
-As in every happy story, this is no longer the case! Chapters
-\ref{chp:intersection_generate} and \ref{chp:intersection_usage} show
-how intersection types can be generated and used. \dr\ emerges
-stronger than before, able to catch both abuses of behaviours and a
-whole new range of actual errors in code. What is more, further
-improvements are now easily attainable and are presented in Section
-\ref{sct:further_work}.
+As in every happy story, this is no longer the case!
+Chapters~\ref{chp:intersection_generate}
+and~\ref{chp:intersection_usage} show how intersection types can be
+generated and used. \dr\ emerges stronger than before, able to catch
+both abuses of behaviours and a whole new range of actual errors in
+code. What is more, further improvements are now easily attainable and
+are presented in Section~\ref{sct:further_work}.

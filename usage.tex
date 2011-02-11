@@ -4,11 +4,11 @@
 \section{Testing with PropEr}
 
 Testing the implementation of intersection types proved to be an
-excellent opportunity for another tool developed in SoftLab to show
-its shine: PropEr \cite{Manolis}. Types are inherently an abstract
-data type with its own operators and properties that should be
-satisfied by them. A brief overview of the testing using PropEr will
-be given in this section.
+excellent opportunity to show the shine of another tool developed in
+SoftLab: PropEr~\cite{Manolis}. Types are inherently an abstract data
+type with its own operators and properties that should be satisfied by
+them. A brief overview of the testing using PropEr will be given in
+this section.
 
 \subsection{Generating random function types}
 
@@ -23,6 +23,9 @@ parameters as:
   for atoms)
 \item Pretty printing of failing tests using PropEr's ?WHENFAIL directive
 \end{itemize}
+
+Using PropEr was a very creative and fun experience as ideas could be
+tested quickly against the properties required.
 
 \subsection{Properties of function types}
 
@@ -49,100 +52,101 @@ properties as well as stronger ones were tested. Some of them:
 \end{enumerate}
 
 \subsection{Side results}
+\label{sct:side_results}
 
 Using these properties and some early implementations with no
-syntactic equality (as presented in Section
-\ref{sct:orig_type_operations}) we found a two minor omission in the
-type system of Erlang, in an operator that returned all the simple types
-contained in a composite type:
+syntactic equality (as presented in
+Section~\ref{sct:orig_type_operations}) we found a two minor omission
+in the type system of Erlang, in an operator that returned all the
+simple types contained in a composite type:
 \begin{enumerate}
-\item Arbitrary lists didn't return as simple types the empty list and
-  the nonempty list with the same contents
-\item Unspecified numbers didn't break down to unspecified integers
-  and unspecified floats.
+\item Lists did not break down in simpler types as the empty list and
+  the nonempty list with the same contents.
+\item The \emph{number()} type did not break down to \emph{integer()}
+  and \emph{float()} types.
 \end{enumerate}
 
 Fixing the first omission led to the detection of many loose contracts
-in OTP (where nonempty list were sure to be returned whereas the
+in OTP (where nonempty list was sure to be returned whereas the
 contract included the empty list as a possible return).
-
-\subsection{Conclusion}
-
-Using PropEr was a very creative and fun experience as ideas could be
-tested quickly against the properties required.
 
 \section{Performance issues}
 
-Sparsely in the previous secrions we mentioned the need of limits in
+Sparsely in the previous secrions we mentioned the need for limits in
 the geneneration of intersections. These limits were imposed when the
 analysis was under risk to become needlessly time consuming. The
-recent parallelization of Dialyzer \cite{Ypatia} should push these
-limits further.
+recent parallelization of Dialyzer~\cite{Ypatia} enables a more
+efficient utilization of the modern multicore machines and should push
+these limits further.
 \begin{description}
 \item[Number of clauses:] In the calculation of the disjunctive normal
   form, in cases where too many clauses or deep nesting of branches is
   present it is possible for the normal form to have too many
   branches. A limit was put to the number of them to maintain both
   efficiency and usability, as a very long success typing would alse
-  be impractical to present to the user.
+  be impractical to present to the user. This limit requires that the
+  \emph{disjunctive normal form} has no more than 100 clauses.
 \item[Size of SCCs:] The analysis of SCCs requires a separate fixpoint
   and the substitution of the \emph{dynamic constraints} mentioned in
-  Section \ref{sct:intersect_constr_generation} each time using the
+  Section~\ref{sct:intersect_constr_generation} each time using the
   latest type. This becomes impractical when the SCC is particularly
-  big so another limit was placed in the size of it.
+  big so another limit was placed in the size of it. This limit
+  requires that any SCC has no more than 30 members.
 \item[Iterations in SCCs and self-recursive:] Before intersection
   types \dr's overapproximations guaranteed that fixpoint would be
   reached in a reasonable amount of iterations. This is no longer the
-  case. Consider the example in Listing \ref{lst:self_rec_id_fun}. The
+  case. Consider the example in Listing~\ref{lst:self_rec_id_fun}. The
   iterative process will infer that the function returns 0 for input
   0, 1 for input 1 and so forth, without any reason to stop or any
   mean to find a fixpoint (previously after a few iterations both
-  success types would collapse into \emph{integer}).
+  success types would collapse into \emph{integer()}). A limit of 10
+  tries for SCCs and 30 for self-recursive functions is applied here.
   \begin{console}{lst:self_rec_id_fun}{A self recursive numeric identity function}
-    id(0) -> 0; id(N) -> 1 + id(0)
+    id(0) -> 0;
+    id(N) -> 1 + id(0)
   \end{console}
 \end{description}
 
 In all these cases we simply skip the tranformation to the normal form
 after a fixed number of iterations. This causes the success typing to
 collapse as the combination of the arguments' and the return types
-happens in the end (as described in Sections \ref{sct:orig_analysis}
-and \ref{sct:intersect_constr_process}).
+happens in the end (as described in Sections~\ref{sct:orig_analysis}
+and~\ref{sct:intersect_constr_process}).
 
 \section{Intersection analysis results}
 
 The actual usage of the success typings for discrepancy detection
 happens in a final dataflow pass on the code under inspection. We
 won't go into detail here on the various warnings that may be emitted
-as these are covered in detail in the relevant publications
-\cite{Elli, SuccessTypings@PPDP-06,
+as these are covered in detail in the relevant
+publications~\cite{Elli, SuccessTypings@PPDP-06,
   springerlink:10.1007/978-3-540-30477-7_7}.
 
-The only change we implemented there is the substitution of the
+The only change we implemented is the substitution of the
 generic lookup for the return type of function calls with a lookup
 that takes into consideration the types of the arguments. In this way
 we can easily detect discrepancies like the one in the initial example
-(\ref{sct:intersection_preliminaries}).
+(Section~\ref{sct:intersection_preliminaries}).
 
 \subsection{Generic discrepancies}
 
-Using the extended \dr\ the results presented in Table
-\ref{tab:intersection_results} were found. They are divided in the
-following categories:
+Using the extended \dr\ the results presented in
+Table~\ref{tab:intersection_results} were found. They are divided in
+the following categories:
 
 \begin{description}
 \item[Failing calls:] These are calls that are certain to fail. This
   is usually the result of a particular combination of arguments. This
   category includes calls that are supposed to fail but no spec is
-  provided so that dialyzer knows not to worry (See Listing
-  \ref{lst:failing_call}.
+  provided so that dialyzer knows not to worry (See
+  Listing~\ref{lst:failing_call}).
 \item[Unneeded cases:] These are \emph{case} statements that have an
-  unneeded error-catching or catch-all clause (See Listing
-  \ref{lst:unneeded_case}.
+  unneeded error-catching or catch-all clause (See
+  Listing~\ref{lst:unneeded_case}.
 \item[Exit calls:] Calls that result in an \emph{erlang:exit}. These
   come from error-handling functions that do not always fail. When
   such calls are present, user should specify that the function may
-  not return (See Listing \ref{lst:exit_call}). 
+  not return (See Listing~\ref{lst:exit_call}). 
 \item[Nonmatching clauses:] These are nonmatching clauses that are not
   catch-alls.
 \item[Deriving warnings:] In some cases a root failure may cause
@@ -223,18 +227,18 @@ return since it differs in the 2nd argument from the success typing arguments:
 
 The introduction of intersection types removed all the false positives
 from the previously collected results on behaviour usage. The reason
-for this is precisely the one described in Section
-\ref{sct:behaviour_discrepancies}: intersectioned types were assigned
-to the functions that handled all the requests and the analysis was
-able to discern whether a particular call could end in each result
-instead of assuming they were all possible. None of the other warnings
-were affected.
+for this is precisely the one described in
+Section~\ref{sct:behaviour_discrepancies}: intersection types were
+assigned to the functions that handled all the requests and the
+analysis was able to discern whether a particular call could end in
+each result instead of assuming all results were possible. None of the
+other warnings were affected.
 
 \subsection{Bonus results}
 
-In Section REF we mentioned how the correction of a small omission
-produced warnings about overspecified functions. Another such small
-error regarded the relation between the \none\ and \emph{unit}
-types. The infimum of the two was considered to be \emph{unit}. The
-correction of this error unearthed a heap of \emph{``Function X has no
-  local return''}.
+In Section~\ref{sct:side_results} we mentioned how the correction of a
+small omission produced warnings about overspecified
+functions. Another such small error regarded the relation between the
+\none\ and \emph{unit} types. The infimum of the two was considered to
+be \emph{unit}. The correction of this error unearthed a heap of
+\emph{``Function X has no local return''}.

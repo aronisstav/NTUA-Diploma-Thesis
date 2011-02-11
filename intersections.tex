@@ -1,12 +1,12 @@
-\chapter{Intersection Types generation}
+\chapter{Intersection Types Generation}
 \label{chp:intersection_generate}
 
-As described in Section \ref{sct:dialyzer_preliminaries}, \dr\ has two
+As described in Section~\ref{sct:dialyzer_preliminaries}, \dr\ has two
 distinct phases in its analysis: during the first it calculates the
 success typings of all the functions and during the second it finds
 the discrepancies in their use. In this chapter the calculation of
 intersectioned success typings will be presented, leaving their usage
-in discrepancy detection for Chapter \ref{chp:intersection_usage}.
+in discrepancy detection for Chapter~\ref{chp:intersection_usage}.
 
 \section{Original type system and analysis}
 
@@ -14,15 +14,18 @@ Before describing the design and implementation of the intersection
 types as well as the analysis needed to produce and use them, a brief
 overview of the existing \er's type system will be given, focusing on
 the type of functions and the analysis performed by \dr\ to generate
-them. Especially for the analysis, \cite{Elli} explains everything in
-far greater detail and is a suggested reading.
+them. Further details, especially for the analysis, are available in
+the Master thesis of Elli Fragkaki~\cite{Elli}.
 
 \subsection{Type system}
 
-\er's type system includes types for all the basic term sets. Table
-\ref{tab:erl_terms} briefly describes these sets and Table
-\ref{tab:erl_types} contain the most commonly used \er\ types. More
-information on these can be found in \cite{erlman, type_system, Manolis}.
+\er's type system includes types for all the basic term sets. These
+types form a lattice, with the type \emph{any()} being the top type
+and \emph{none()} the bottom. Table~\ref{tab:erl_terms} briefly
+describes these sets and Table~\ref{tab:erl_types} contain the most
+commonly used \er\ types. More information on these can be found in
+the language manual and relevant publications and
+bibliography~\cite{erlman, type_system, Manolis}.
 
 \begin{fulltable}{|c|c|c|}{Categories of Erlang terms}{tab:erl_terms}
 \hline
@@ -39,9 +42,9 @@ Binary & An untyped series of bytes & <<255,0,98>>, <<42>> \\
 \hline
 Bitstring & An untyped series of bits & <<99,3:2>>, <<1:1,0:1>>, <<4>> \\
 \hline
-Pid & A handle for talking to an Erlang process & -- \\ % <0.36.0>
+Pid & A handle for referring to an Erlang process & -- \\ % <0.36.0>
 \hline
-Port & A handle for talking to an external program & -- \\ % \#Port<0.51>
+Port & A handle for referring to an external program & -- \\ % \#Port<0.51>
 \hline
 Reference & A term unique within a runtime environment & -- \\ % \#Ref<0.0.0.62>
 \hline
@@ -151,49 +154,49 @@ References & reference() & all references \\
 \label{sct:orig_fun_type}
 
 Some special attention should be given to the form of the function
-type. As shown in Table \ref{tab:erl_types}, a function's type
+type. As shown in Table~\ref{tab:erl_types}, a function's type
 consists of two parts:
 \begin{enumerate}
-\item The first part describes the type of the function
+\item The first part describes the type of the function's
   arguments. This can be either a product of specific length, with one
-  type for each of the function's arguments, or the type \emph{any} if
+  type for each of the function's arguments, or the type \emph{any()} if
   we have no information about the number of arguments.
 \item The second part describes the return type of the function. This
-  can be a regular type or the special type \emph{unit} for functions
-  that are not supposed return\footnote{This is the case for example
-    in a function that implements a server's main loop}.
+  can be a regular type or the special type \emph{unit()} for functions
+  that are not supposed to return\footnote{This is the case for
+    example in a function that implements a server's main loop}.
 \end{enumerate}
 
 \subsubsection{Type operations}
 \label{sct:orig_type_operations}
 
 Working with types requires special operators. The most important of
-them will be presented now (as these were the ones which were mainly
+them will be presented here (as these were the ones which were mainly
 affected by the introduction of intersection types), along with the
 particular usage of them on function types.
 \begin{description}
 \item[Supremum:] The supremum of two types is the smallest type that
-  contains them both. \er\ supports union types as shown in Table
-  \ref{tab:erl_types} as well as special unions for common types (like
-  atoms, integers and tuples). \dr\ may overapproximate a union type
-  in cases where detail exceeds a certain level to keep the success
-  typings analysis efficient. Such is the case with large sets of
-  atoms for example: the type of the single-character atoms
-  corresponding to the lowercase letters of the English alphabet is
-  \atom\ and not \emph{a | b | ... | z}.
+  contains them both. \er\ supports union types as shown in
+  Table~\ref{tab:erl_types} as well as special unions for common types
+  (like atoms, integers and tuples). \dr\ may overapproximate a union
+  type in cases where detail exceeds a certain level to keep the
+  success typings analysis terminating and efficient. Such is the case
+  with large sets of atoms for example: the type of the
+  single-character atoms corresponding to the lowercase letters of the
+  English alphabet is \atom\ and not \texttt{a | b | ... | z}.
 
   The original calculation of two function types' supremum is the main
   reason for our inability to detect errors such as the one presented
-  in Section \ref{sct:intersection_preliminaries}. As the type system
+  in Section~\ref{sct:intersection_preliminaries}. As the type system
   has one field for the success typings of the arguments and one for
   the function's return, supremum simply creates the union of the
   arguments and the result and stores them in the respective
   fields. This produces wider success typings than desired (in the
-  example shown in Listing \ref{lst:fun_sup_example} a function that
-  takes an \atom\ and returns a \emph{number} is included in the type,
-  even though none of the original members includes it). If the
+  example shown in Listing~\ref{lst:fun_sup_example} a function that
+  takes an \atom\ and returns a \emph{number()} is included in the
+  type, even though none of the original members includes it). If the
   functions have different arity the domain type collapses into
-  \emph{any}.
+  \emph{any()}.
 
 \begin{console}{lst:fun_sup_example}{Original function supremum example}
 Supremum:
@@ -209,10 +212,11 @@ Result : fun((atom() | number()) -> atom() | number())
   have the infimum type for each argument and the infimum of the
   return types.
 
-\item[Equality:] As there are no aliases two types are equal if and
-  only if they are syntactically equal. This applies even to the
-  internal representation which keeps every particular set (like
-  \atoms\ or \emph{integers}), as well as mixed unions, ordered.
+\item[Equality:] As there are no aliases in the representation of
+  types, two types are equal if and only if they are syntactically
+  equal. This applies even to the internal representation which keeps
+  every particular set (like \atom\ or \emph{integer()}), as well as
+  mixed unions, ordered.
 
   Functions types are no exception and should also be syntactically
   equal to be equal.
@@ -236,21 +240,22 @@ There are also special operations for function types:
 \dr\ begins the analysis by finding the calls between functions and
 creating the respective callgraph. From this callgraph a partial
 ordering of the functions is obtained and all functions' success
-typings are calculated beginning from those who have no calls and
+typings are calculated beginning from those which have no calls and
 building on top of them.
 
 The success typings analysis assigns a type variable to each of the
 code's original variables and stores a mapping from each variable to a
 type. Functions get two variables, one primary and a second one to be
-used in self-calls and SCC calls. After that the code is traversed to
-generate constraints and subsequently these are processed to obtain
-the final type.
+used in self-calls and calls within \emph{strongly connected
+  components} (SCCs)\footnote{These correspond to functions that call
+  each other forming a circle of calls}. After that, the code is
+traversed to generate constraints and subsequently these are processed
+to obtain the final type for each function.
 
 A brief presentation of the main types of constraints and the
-processing algorithm will be included here to make illustrating the
-differences introduced in the new analysis easier. For further details
-you can refer to the appropriate sections in the bibliograhy
-\cite{Elli, SuccessTypings@PPDP-06}.
+processing algorithm will be included here to show what needs to be
+changed. Further details are provided in the relevant
+bibliograhy~\cite{Elli, SuccessTypings@PPDP-06}.
 
 \subsubsection{Constraints}
 \label{sct:orig_constraints}
@@ -272,8 +277,8 @@ The constraints belong to one of the following kinds:
   of the conjunctions, the types for the disjunction are calculated by
   getting the supremum of the types for each variable on each branch.
 \item[Constraint references:] Funs without name generate these. These
-  are special and not really relevant with this extension so they are
-  simply mentioned for completeness.
+  are special and not affected by the intersection types extension so
+  they are simply mentioned for completeness.
 \end{description}
 
 \begin{console}{lst:constraints}{Constraint examples}
@@ -289,7 +294,7 @@ foo(X) ->
 
 %% Supposing we have alredy found the success typing:
 %% bar(1 | 2) -> 5 | 10
-%% The constraints for foo are:
+%% The constraints for foo/1 are:
 
 Conjunctive List 1:                <- All the constraints for foo
  * var(1) eq fun(var(2)) -> var(3) <- Tying foo type to it's args and ret
@@ -304,33 +309,31 @@ Conjunctive List 1:                <- All the constraints for foo
  ...
 \end{console}
 
-In Listing \ref{lst:constraints} a real example is given. As you can
-see, the constraints of each function are collected in a main
-conjunctive constraint list. In this list there exist some notable
-constraints:
+In Listing~\ref{lst:constraints} an example is given. The constraints
+of the function \texttt{foo} are collected in a main conjunctive
+constraint list. In this list there exist some notable constraints:
 
 \begin{enumerate}
   \item \textbf{Generic function constraint:} This constraint has the
-    form of the first element in the conjunctive list 1 of Listing
-    \ref{lst:constraints}. It's purpose is to bind the function's type
-    variable to the ones of the arguments and the result. In the
-    example \emph{var(1)} is the type variable of a function with one
-    argument (with type variable \emph{var(2)}) whose return type is
-    \emph{var(3)}. This constraint is the actual constructor of the
-    function's type.
+    form of the first element in the conjunctive list 1 of
+    Listing~\ref{lst:constraints}. Its purpose is to bind the
+    function's type variable to the ones of the arguments and the
+    result. In the example \emph{var(1)} is the type variable of a
+    function with one argument (with type variable \emph{var(2)})
+    whose return type is \emph{var(3)}. This constraint is the actual
+    constructor of the function's type.
+  \item \textbf{Constraints from clauses:} If the function has
+    clauses, the list contains a disjunctive list of the constraints
+    generated in each of them (an example is the disjunctive list 2 in
+    Listing~\ref{lst:constraints}). If the function has only one
+    clause the constraints of it are added in the main conjunctive
+    list as is.
   \item \textbf{Refined function constraint:} This constraint comes
     from the dataflow analysis and restricts the whole type of
     unexported functions according to the actual calls that are
-    present within the module. For more information on function
-    refinement see \ref{sct:dialyzer_preliminaries}. This constraint
-    is omitted when the function is exported or dataflow has not yet
-    been performed.
-  \item \textbf{Constraints from clauses:} If the function has
-    clauses, the third constraint in the list is a disjunctive list of
-    the constraints generated in each of them (an example is the
-    disjunctive list 2 in \ref{lst:constraints}). If the function has
-    only one clause the constraints of it are added in the main
-    conjunctive list as is.
+    present within the module. This constraint is omitted when the
+    function is exported or dataflow has not yet been performed (the
+    example has no such constraint).
 \end{enumerate}
 
 The previous constraints are present in the form described above in
@@ -338,7 +341,7 @@ every main conjunctive list. Some other forms of constraints that are
 present in almost every function are these:
 
 \begin{enumerate}
-  \item \textbf{Branches:} Branches such as \emph{case} statements
+  \item \textbf{Branches:} Branches such as \texttt{case} statements
     generate disjunctive lists, just like clauses do.
   \item \textbf{Function calls:} These produce a conjunctive list,
     requiring both the result's and the actual parameters' type
@@ -349,9 +352,10 @@ present in almost every function are these:
     extend the types of the argument and the result. In this way we
     begin to extract the type from clauses that are sure to return and
     build on top of them to find wider success typings. The
-    overapproximations mentioned in \ref{sct:orig_type_operations}
-    (Supremum operator) make this procedure efficient, as after a
-    certain limit the types collapse into generic ones.
+    overapproximations mentioned in
+    Section~\ref{sct:orig_type_operations} (Supremum operator) make
+    this procedure efficient, as after a certain limit the types
+    collapse into generic ones.
 \end{enumerate}
 
 \subsubsection{Processing}
@@ -363,14 +367,24 @@ contain according to the operation they contain (equality or subtype)
 and store the result in the mapping. Lists and refs store the old
 mappings and compare the new ones against them to find a fixpoint as
 each element may affect others. Self-recursive functions and SCCs also
-have special treatment as the previously calculated types are fed back
-in to be further processed in the self or scc-related calls.
+require special treatment as the previously calculated types are fed
+back in to be further processed in the self or scc-related calls.
+
+\subsubsection{Storing}
+\label{sct:storing}
+
+After the success typings for all the functions in a module have been
+calculated, they are stored in a \emph{Persistent Lookup Table} (PLT)
+in order to be used by calls from other modules. The PLT may be stored
+in a file and imported in subsequent analyses to serve as a trusted
+starting point to analyze other modules that have calls to already
+analyzed ones.
 
 \section{Intersection types}
 \label{sct:intersection_types}
 
 In order to generate and use intersection types changes were required
-in both the type system and \dr's analysis.
+in the type representation, operators and \dr's analysis.
 
 \subsection{Changes in the type system}
 \label{sct:intersection_type_system}
@@ -381,11 +395,11 @@ in both the type system and \dr's analysis.
 We need the ability to store multiple domains with the respective
 ranges. Therefore we will substitute the original two fields in the
 function type with a list of tuples of arity 2. Each tuple will
-contain a domain and a range and will be referred as a \emph{clause}.
-\dr\ took advantage of the simple old form and stored the type of the
-function in the plt using a tuple containing the two old parts. This
-had to be changed and a proper full function type to be stored
-instead.
+contain a domain and a range and will be referred as a \emph{type
+  clause}.  \dr\ took advantage of the simple old form and stored the
+type of the function in the PLT using a tuple containing the two old
+parts. This had to be changed and a combined function type to be
+stored instead.
 
 \subsubsection{Semantics}
 \label{sct:intersection_semantics}
@@ -398,17 +412,17 @@ every operation described all the clauses have to be taken into
 account.
 
 This also changes the semantics of the final type. The syntax is
-similar to that of specs, \textbf{BUT} while in specs overlapping is
-not permitted (see Section \ref{sct:dialyzer_preliminaries}), here it
+similar to that of specs, \textbf{but} while in specs overlapping is
+not permitted (see Section~\ref{sct:dialyzer_preliminaries}), here it
 is allowed and the return type of each specific call is calculated by
-taking the supremum of the return types of \textbf{EVERY} clause whose
+taking the supremum of the return types of \textbf{every} clause whose
 domain overlaps \footnote{This means that the infimum of every
   argument's type in the call and the respective type in the clause is
   not \none} with the inferred types of the arguments in the call.
 
 \subsubsection{Operations}
 
-The operations described in \ref{sct:orig_type_operations} are
+The operations described in Section~\ref{sct:orig_type_operations} are
 modified as follows, with regard to function types:
 
 \begin{description}
@@ -432,10 +446,10 @@ modified as follows, with regard to function types:
   to reduce the number of clauses. Three separate methods of reduction
   are used:
   \begin{enumerate}
-    \item \textbf{Combine same domains:} Clauses with the same domain
+    \item \textbf{Combine domains:} Clauses with the same domain
       should combine their ranges with supremum. An example of this
-      technique is given in Example 1 in Listing
-      \ref{lst:clauses_reduction_example}.
+      technique is given in Example 1 in
+      Listing~\ref{lst:clauses_reduction_example}.
     \item \textbf{Combine ranges:} Clauses with the same range may
       also be combined if this does not overapproximate the
       domains. This happens when the domains differ in exactly one
@@ -443,15 +457,16 @@ modified as follows, with regard to function types:
       the original types (we don't have overapproximations). This
       computation requires a fixpoint termination condition as further
       reduction may be possible in a successive pass. Examples 2 and 3
-      in the same Listing illustrate this technique.
+      in Listing~\ref{lst:clauses_reduction_example} illustrate
+      this technique.
     \item \textbf{Remove subclauses:} If both the domain and the range
       of a clause are subtypes of another clause's respective domain
       and range we can remove the clause, as anything using it will
       also use the superclause. This causes intersections to lose
       power in cases where catch-all clauses with return type
       \any\ are present in the code, as these will cause all the rest
-      to be absorbed in them. A solution to this issue is proposed in section
-      \ref{sct:negative_types}.
+      to be absorbed in them. A solution to this issue is proposed in
+      Section~\ref{sct:negative_types}.
       \begin{console}{lst:clauses_reduction_example}{Clauses reduction examples}
         Example 1: Same domains in supremum
         -----------------------------------
@@ -478,42 +493,40 @@ modified as follows, with regard to function types:
 \item[Sorting of clauses:] The clauses are sorted according to the
   default ordering of \er's terms both before and after the reductions
   are performed to control both the order of the reductions and the
-  final result. This destroys any relation between original clauses in
-  the code and resulting success typings but it's important as it
-  normalizes the type and maintains the desired property of ``equality
-  implies syntactic equality''.
-\item[Equality and subtyping:] Equality maintains it's simple, syntax
+  final result. This destroys any relation between the original
+  clauses in the code and the resulting success typings but it's
+  important as it normalizes the type and maintains the desired
+  property of ``equality requires syntactic equality''.
+\item[Equality and subtyping:] Equality maintains its simple, syntax
   based check. The reasons behind this will become clearer after the
   presentation of the changes in the inference algorithm. Clause
   sorting is essential to maintain this property. Subtyping is also
-  calculated as described in Section \ref{sct:orig_type_operations}.
-\item[Function range:] As described in Section
-  \ref{sct:intersection_semantics}, when asking for a function's range
-  we may provide information about the argument types and retrieve a
-  narrower type.
+  calculated as described in Section~\ref{sct:orig_type_operations}.
+\item[Function range:] As described in
+  Section~\ref{sct:intersection_semantics}, when asking for a
+  function's range we may provide information about the argument types
+  and retrieve a narrower type.
 \end{description}
 
 Other special type functions had to be modified as well to be
 compatible with the new representation. What is important to mention
-is that in any case where the inner types might be modified (as in
-substitutions of opaque types by simple ones and limitation of type
-depth), reduction had to be performed as well to ensure the syntactic
-equality.
+is that in any case where the inner types might be modified reduction
+had to be performed as well to ensure the syntactic equality.
 
 \subsection{Analysis}
 \label{sct:intersection_analysis}
 
 The initial steps of the analysis are not changed. Functions are
-sorted as described in \ref{sct:orig_analysis} and the success typings
-are calculated per SCC. Changes are introduced in both the generation
-of constraints and the processing of them to produce the success
+sorted as described in Section~\ref{sct:orig_analysis} and the success
+typings are calculated per SCC. Changes are introduced in both the
+generation of constraints and their processing to produce success
 typings. As the most important change is implemented in the processing
 we will reverse the order of the presentation.
 
 \subsubsection{Changes in constraint processing}
 \label{sct:intersect_constr_process}
 
-As we already described in Section \ref{sct:orig_constraints}, each
+As we already described in Section~\ref{sct:orig_constraints}, each
 function has all the constraints organized in a conjunctive list. This
 list contains disjunctive lists whenever a branch is present in the
 code. Moreover each of these has conjunctive lists with local maps
@@ -533,17 +546,31 @@ into each local map. Taking the \emph{disjunctive normal form} of the
 original constraint list accomplishes this goal in a natural way and
 separates all the interleavings where nested disjunctive lists are
 present (for example a case statement in a branch of a multi-clause
-function). An example is provided in Listing \ref{lst:normal_form}. In
+function). An example is provided in Listing~\ref{lst:normal_form}. In
 this way we generate the correct partial type in every branch and
 combine them all in the end using supremum which maintains the
 separation. The disjunctive normal form is already used in the
 generation of constraints from \emph{guards} to gain precision.
-Another benefit we gain is that whenever the function is too
+Another benefit we gain is that whenever a function is too
 complicated, the calculation of the disjunctive normal form can detect
 it and return the original constraint list which when further
 processed will return the old-fashioned collapsed type.
 
 \begin{console}{lst:normal_form}{Normal form example}
+%%Sample code
+
+bar(1) -> 5;
+bar(2) -> 10.
+
+foo(a) -> b;
+foo(X) ->
+  Y = bar(X),
+  Y*X.
+
+%% Supposing we have alredy found the success typing:
+%% bar(1 | 2) -> 5 | 10
+%% The constraints for foo/1 are:
+
 Conjunctive List 1:
  * var(1) eq fun(var(2)) -> var(3)
  * Disjunctive List 2:
@@ -553,9 +580,9 @@ Conjunctive List 1:
  *  * Conjunctive List 4:
  *  *  * var(2) sub 1|2
  *  *  * var(4) sub 5|10
- *  *  * var(5) eq var(4)
+ *  *  * var(3) eq var(4)
 
-Disjunctive normal form of the list:
+%% Disjunctive normal form of the list:
 
 Disjunctive List 1:
  * Conjunctive List 2:
@@ -566,7 +593,7 @@ Disjunctive List 1:
  *  *  var(1) eq fun(var(2)) -> var(3)
  *  *  var(2) sub 1|2
  *  *  var(4) sub 5|10
- *  *  var(5) eq var(4)
+ *  *  var(3) eq var(4)
 \end{console}
 
 \subsubsection{Changes in constraint generation}
@@ -579,8 +606,8 @@ obvious: for every clause in the function type a separate conjunctive
 list is to be generated, binding the argument and result type
 variables to the respective success types in the clause. These
 conjunctive lists are then placed in a disjunctive list and the
-constraint is ready to be handled by the normalization (see Listing
-\ref{lst:call_disjunction} for an example).
+constraint is ready to be handled by the normalization (see
+Listing~\ref{lst:call_disjunction} for an example).
 
 \begin{console}{lst:call_disjunction}{Disjunction for function calls}
 %%Sample code
@@ -595,7 +622,7 @@ foo(X) ->
 
 %% Supposing we have alredy found the success typing:
 %% bar(1) -> 5; (2) -> 10
-%% The new constraints for foo are:
+%% The new constraints for foo/1 are:
 
 Conjunctive List 1:
  * var(1) eq fun(var(2)) -> var(3)
@@ -611,7 +638,7 @@ Conjunctive List 1:
  *  *  *  *  Conjunctive List 7:
  *  *  *  *  *  var(2) sub 2
  *  *  *  *  *  var(4) sub 10
- *  *  * var(5) eq var(4)
+ *  *  * var(3) eq var(4)
  ...
 \end{console}
 
@@ -647,17 +674,17 @@ call generate a conjunctive list and all these lists are placed under
 a disjunctive list where they can be handled by the normal form
 transformation in the usual way.
 
-As an example take the simple reversal of lists, presented in Listing
-\ref{lst:reverse}. The one-argument function is exported while the
-other is kept local and can therefore be refined. The initial success
-typing is very generic because the first clause doesn't restrict the
-second argument. Using the union of the types from the two calls we
-learn that the second argument is a list, so the result must be a list
-as well but no distinction is made. Only by separating the calls and
-solving each case separately can we obtain the maximum information
-from this code.
+As an example take the simple reversal of lists, presented in
+Listing~\ref{lst:reverse}. The one-argument function is exported while
+the other is kept local and can therefore be refined. The initial
+success typing is very generic because the first clause doesn't
+restrict the second argument. Using the union of the types from the
+two calls we learn that the second argument is a list, so the result
+must be a list as well but no distinction is made. Only by separating
+the calls and solving each case separately can we obtain the maximum
+information from this code.
 
-\begin{console}{lst:reverse}{Refinement of the success typing of reverse}
+\begin{console}{lst:reverse}{Refinement of the success typing of reverse/2}
 reverse(List) ->
   reverse(List, []).
 

@@ -1,7 +1,7 @@
 \chapter{Finding discrepancies in behaviour usage}
 \label{chp:behaviours}
 
-As described in Section \ref{sct:behaviour_preliminaries}, behaviours
+As described in Section~\ref{sct:behaviour_preliminaries}, behaviours
 are \er's equivalent of \emph{abstract classes}, as they appear in
 object-oriented languages like Java. When using \emph{abstract
   classes} the developer might make trivial mistakes such as
@@ -13,7 +13,7 @@ implementation of any \emph{callbacks} but \dr\ can be used to further
 aid the developer by verifying whether his implementations have the
 expected success typings, ensuring thus that they ``fit well'' with
 the already provided infrastructure. \dr's recent feature, race
-analysis \cite{Races@PADL-10}, can also be extended to detect races
+analysis~\cite{Races@PADL-10}, can also be extended to detect races
 present in code that uses behaviours. Each extension will be presented
 in a separate section.
 
@@ -23,7 +23,7 @@ in a separate section.
 the key features of the language (concurrency, communication,
 distribution and fault-tolerance) and allow the developer to focus on
 the particular aspects of his implementation, ignoring these
-parameters. In table \ref{tab:otp_behaviours} the most common
+parameters. In Table~\ref{tab:otp_behaviours} the most common
 behaviours in OTP are presented, along with some of the callbacks they
 require.
 
@@ -35,10 +35,11 @@ infrastructure may be used for many specific implementations.
 \subsection{Declaration of a behaviour}
 
 A module describing a behaviour exports a specific function:
-\emph{behaviour\_info(callbacks)}. This returns the expected callbacks
-in the form of a list of tuples containing the names of the callback
-functions as atoms and their arity as integers. The example in Listing
-\ref{lst:behaviour_info} is taken from the \genserv\ behaviour.
+\texttt{behaviour\_info(callbacks)}. This returns the expected
+callbacks in the form of a list of tuples containing the names of the
+callback functions as atoms and their arity as integers. The example
+in Listing~\ref{lst:behaviour_info} is taken from the
+\genserv\ behaviour.
 
 \begin{console}{lst:behaviour_info}{Generic server's declaration of callbacks}
 -export([behaviour_info/1]).
@@ -71,14 +72,14 @@ behaviour_info(callbacks) ->
 \subsection{Better declaration of a behaviour}
 
 Often, though not always, the behaviour module also contains some
-additional information in the form of comments, as shown in Listing
-\ref{lst:behaviour_info}. The problem with comments is that they are
-in free text form, often lacking some information as in the case
-above, and cannot be mechanically processed.
+additional information in the form of comments, as shown in
+Listing~\ref{lst:behaviour_info}. The problem with comments is that
+they are in free text form, often lacking some information as in the
+case above, and cannot be trusted or mechanically processed.
 
 Instead of the form described in the previous Listing, the
-behaviour\_info(callbacks) clause can be substituted with the
-attributes shown in Listing \ref{lst:callback_attributes} which also
+\texttt{behaviour\_info(callbacks)} clause can be substituted with the
+attributes shown in Listing~\ref{lst:callback_attributes} which also
 specify the types which are expected from these callbacks.
 
 \begin{console}{lst:callback_attributes}{Callback attributes}
@@ -90,12 +91,13 @@ specify the types which are expected from these callbacks.
 
 -callback handle_call(Request :: term(), From :: {pid(), Tag :: term()},
                       State :: term()) ->
-    {reply, Reply :: term(), NewState :: term()} |
-    {reply, Reply :: term(), NewState :: term(), timeout() | hibernate} |
-    {noreply, NewState :: term()} |
-    {noreply, NewState :: term(), timeout() | hibernate} |
-    {stop, Reason :: term(), Reply :: term(), NewState :: term()} |
-    {stop, Reason :: term(), NewState :: term()}.
+    {reply, Reply :: term(), State :: term()} |
+    {reply, Reply :: term(), State :: term(), timeout() | hibernate} |
+    {noreply, State :: term()} |
+    {noreply, State :: term(), timeout() | hibernate} |
+    {stop, Reason :: normal | shutdown | term(), Reply :: term(), 
+                                                 State :: term()} |
+    {stop, Reason :: term(), State :: term()}.
 
 %%% .... MORE CALLBACK ATTRIBUTES .... %%%
 
@@ -108,38 +110,35 @@ Incidentally, the above example shows various interesting things:
 \begin{enumerate}
 \item Using the language of types and specs, one can provide
   information both for documentation purposes and for types as e.g. in
-  From :: {pid(), Tag}
+  \texttt{From :: {pid(), Tag :: term()}}
 \item Comments are often incomplete or can easily become obsolete as
-  e.g. the 'hibernate' value is nowhere mentioned.
+  e.g. the \texttt{hibernate} value is nowhere mentioned.
 \end{enumerate}
 
-\section{Finding discrepancies using the success typings of callbacks}
+\section{Finding discrepancies in callbacks}
 \label{sct:behaviour_discrepancies}
 
 \dr's extension to use these callback attributes was simple and
 straightforward. After the success typings were calculated, they were
-compared against the attributes\footnote{The content of the attributes
-  was based on the current documentation and the comments found in the
-  various files and is currently under review by the OTP team.} and
-warnings were emitted when the latter were not subtypes of the
-former. In this way the discrepancies shown in Table
-\ref{tab:erl_apps_behaviours} were found \footnote{Only definite
-  results are presented. Some more results need verification from the
-  OTP team as the documentation on which the callback attributes were
-  based might be outdated.}
+compared against the attributes and warnings were emitted when the
+latter were not subtypes of the former. In this way the discrepancies
+shown in Table~\ref{tab:erl_apps_behaviours} were found \footnote{Only
+  definite results are presented. Some more results need verification
+  from the OTP team as the documentation on which the callback
+  attributes were based might be outdated.}
 
 \input{behaviours_results}
 
 All these discrepancies correspond to cases where a callback has a
 wider return type than the one described in the relevant
 attribute. The most common warning was about the return value of
-\genserv's callbaks \emph{handle\_cast} and \emph{handle\_info} which
-sometimes erroneously included \emph{\{reply, ...\}}.
+\genserv's callbaks \texttt{handle\_cast} and \texttt{handle\_info}
+which sometimes erroneously included \texttt{\{reply, ...\}}.
 
-Some special attention was given to the \genserv\ module, as
-its API returns depended also on the success typings of the
-callbacks. Specifically for the API's \emph{start} and
-\emph{start\_link} functions, \emph{``If callback init/1 fails with
+Some special attention was given to the \genserv\ module, as its API
+returns depended also on the success typings of the
+callbacks. Specifically for the API's \texttt{start} and
+\texttt{start\_link} functions, \emph{``If callback init/1 fails with
   Reason, the function returns \{error,Reason\}. If callback init/1
   returns \{stop,Reason\} or ignore, the process is terminated and the
   function returns \{error,Reason\} or ignore, respectively.''}. This
@@ -147,25 +146,27 @@ was taken into account when calls to these functions were found, as
 otherwise false warnings were emitted for the inets and other
 applications.
 
-Unfortunately, \dr\ emitted other false warnings as well. These
-warnings came from situations where two or more callback functions
-used the result of a common underlying function as a reply, or when
-one callback called directly another. The example presented in Listing
-\ref{lst:mnesia_false_warning}, from the mnesia application, falls
-into the latter category, as handle\_info calls a specific clause of
-handle\_call. In the existing type system this will result in the the
-inclusion of \emph{all} of handle\_call's possible returns in
-handle\_info's return type. This causes the warning shown in the end
-of the Listing to be emitted, as handle\_call might also return
-\{'reply',\ldots\} in other clauses, even though this will never
-happen in the call from handle\_info (the returns of which are in
-lines 8, 11 and 23 and are all \{'noreply',\ldots\}).
+\dr\ emitted some other false warnings as well. These warnings came
+from situations where two or more callback functions used the result
+of a common underlying function as a reply, or when one callback
+called directly another. The example presented in
+Listing~\ref{lst:mnesia_false_warning}, from the mnesia application,
+falls into the latter category, as \texttt{handle\_info} calls a
+specific clause of \texttt{handle\_call}. Using the existing algorithm
+for type inference this will result in the inclusion of \emph{all} of
+\texttt{handle\_call}'s possible returns in \texttt{handle\_info}'s
+return type. This causes the warning shown in the end of the Listing
+to be emitted, as \texttt{handle\_call} might also return
+\texttt{\{reply,\ldots\}} in other clauses, even though this will
+never happen in the call from \texttt{handle\_info} (the returns of
+which are in lines 8, 11 and 23 and are all
+\texttt{\{noreply,\ldots\}}).
 
 This was the motivation for the second part of this thesis which deals
 with cases like this, where a specific call's return type is certainly
 narrower than the return type of the function. See
-Chapters \ref{chp:intersection_generate}
-and \ref{chp:intersection_usage}.
+Chapters~\ref{chp:intersection_generate}
+and~\ref{chp:intersection_usage}.
 
 \begin{code}{lst:mnesia_false_warning}{A false warning}
 handle_call({connect_nodes, Ns}, From, State) ->
@@ -206,23 +207,25 @@ valid return for the gen_server behaviour
 
 \end{code}
 
-\section{Finding race conditions in the usage of behaviours}
+\section{Use of behaviour information to find more race conditions}
 
 \dr\ was recently extended with the ability to detect data races in
-Erlang programs \cite{Races@PADL-10}. This extension makes heavy use of the
-dataflow analysis as race conditions appear when a value is obtained
-from two separate processes, modified and then written
-back.
+Erlang programs~\cite{Races@PADL-10}. This extension makes heavy use
+of the dataflow analysis as race conditions appear when a value is
+obtained from two separate processes, modified and then written back.
 
-Unfortunately, in cases where OTP's behaviours are used, the flow of
-data is difficult to monitor because the behaviours' APIs use
-parameters obtained in runtime to make calls to functions in the
-callback modules. To find the final destination of these calls a
-special ``bypass'' mechanism was added in the race detection that
-translates calls to the behaviour API of OTP's behaviours into the
-respective call to a callback function, as they are described in the
-documentation. Examples of such translations for the \genserv\
-module are given in Table \ref{tab:gen_server_transl}.
+In cases where OTP's behaviours are used, the flow of data is
+difficult to monitor because the behaviours' APIs use parameters
+obtained in runtime to make calls to functions in the callback
+modules. Therefore any values provided as arguments to behaviour API
+calls may end up in the callback module and cause a race condition
+that is impossible to detect as the call from the API to the callback
+is dependent on runtime parameters. A special ``bypass'' mechanism was
+added in the race detection that translates calls to the behaviour API
+of OTP's behaviours into the respective call to a callback function,
+as they are described in the documentation. Examples of such
+translations for the \genserv\ module are given in
+Table~\ref{tab:gen_server_transl}.
 
 \begin{fulltable}{|c|c|}{OTP's \genserv\ translations}{tab:gen_server_transl}
 \hline
