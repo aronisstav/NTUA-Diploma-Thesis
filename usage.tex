@@ -198,7 +198,7 @@ cerl_pmatch.erl:338: The variable _ can never match since previous clauses
 completely covered the type 'binary' | 'cons' | 'literal' | 'tuple'
 \end{console}
 
-\begin{console}{lst:exit_call}{A path that ends in a call to \emph{exit}}
+\begin{code}{lst:exit_call}{A path that ends in a call to \emph{exit}}
 ...
 check_if_valid_tag(<<>>, _, OptOrMand) ->
     check_if_valid_tag2(false,[],[],OptOrMand);
@@ -216,12 +216,12 @@ check_if_valid_tag2_error(Tag,_) ->
 
 %% Produces the warning
 
-asn1rt_ber_bin.erl:2200: The call
+asn1rt_ber_bin.erl:3: The call
 asn1rt_ber_bin:check_if_valid_tag2('false',[],[],OptOrMand::any()) will never
 return since it differs in the 2nd argument from the success typing arguments:
 ('false' | {'APPLICATION',_} | {'CONTEXT',_} | {'PRIVATE',_} |
 {'UNIVERSAL',_},nonempty_maybe_improper_list(),[] | {_,_,_},any())
-\end{console}
+\end{code}
 
 \subsection{Behaviour related results}
 

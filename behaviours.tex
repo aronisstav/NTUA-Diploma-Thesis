@@ -162,17 +162,9 @@ never happen in the call from \texttt{handle\_info} (the returns of
 which are in lines 8, 11 and 23 and are all
 \texttt{\{noreply,\ldots\}}).
 
-This was the motivation for the second part of this thesis which deals
-with cases like this, where a specific call's return type is certainly
-narrower than the return type of the function. See
-Chapters~\ref{chp:intersection_generate}
-and~\ref{chp:intersection_usage}.
-
 \begin{code}{lst:mnesia_false_warning}{A false warning}
 handle_call({connect_nodes, Ns}, From, State) ->
-    
     ...
-
     case mnesia_monitor:negotiate_protocol(Check) of
 	busy -> 
 	    erlang:send_after(2, self(), {connect_nodes,Ns,From}),
@@ -193,7 +185,6 @@ handle_call({connect_nodes, Ns}, From, State) ->
 	    gen_server:reply(From, {GoodNodes, AlreadyConnected}),
 	    {noreply,State}
     end;
-
 ...
 
 handle_info({connect_nodes, Ns, From}, State) ->
@@ -206,6 +197,12 @@ callback includes the type {'reply','ok' | {'ok',_},_} which is not a
 valid return for the gen_server behaviour
 
 \end{code}
+
+This was the motivation for the second part of this thesis which deals
+with cases like this, where a specific call's return type is certainly
+narrower than the return type of the function. See
+Chapters~\ref{chp:intersection_generate}
+and~\ref{chp:intersection_usage}.
 
 \section{Use of behaviour information to find more race conditions}
 
