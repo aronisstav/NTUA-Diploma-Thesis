@@ -8,4 +8,4 @@
 !*.eps
 !*.tex
 
-!clean
+!Makefile
